@@ -79,11 +79,11 @@ canvas {
   @apply cursor-pointer;
 }
 
-.btn-blue {
+.btn-green {
   @apply bg-green-700 text-white;
 }
 
-.btn-blue:hover {
+.btn-green:hover {
   @apply bg-green-900;
 }
 
@@ -93,6 +93,14 @@ canvas {
 
 .btn-red:hover {
   @apply bg-red-700;
+}
+
+.btn-purple {
+  @apply bg-purple-500 text-white;
+}
+
+.btn-purple:hover {
+  @apply bg-purple-700;
 }
 
 // =========================================================================================

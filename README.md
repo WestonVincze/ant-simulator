@@ -26,5 +26,4 @@ Navigate to [http://localhost:5173/](http://localhost:5173/)
 
 source: [repo](https://github.com/pmndrs/koota)
 
-
 examples: [starter template](https://github.com/Ctrlmonster/r3f-koota-starter)

@@ -39,7 +39,7 @@ export function AntSpawner() {
   )
 }
 
-export function Ant({entity}: { entity: Entity }) {
+export function Ant({ entity }: { entity: Entity }) {
   const meshRef = useRef<Mesh>(null!);
   const mixerRef = useRef<AnimationMixer | null>(null);
   const [isInitialized, setInitialized] = useState(false);
@@ -82,7 +82,6 @@ export function Ant({entity}: { entity: Entity }) {
   })
 
   return (
-    <mesh ref={meshRef} castShadow receiveShadow>
-    </mesh>
+    <mesh ref={meshRef} castShadow receiveShadow />
   )
 }

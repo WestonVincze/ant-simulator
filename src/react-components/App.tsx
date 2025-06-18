@@ -5,10 +5,9 @@ import { SceneContainer } from "./SceneContainer";
 import { exampleActions } from "../ecs";
 import { IsAnt, Position } from "../ecs/traits";
 
-
 export default function App() {
   const entities = useQuery(IsAnt, Position);
-  const {spawnAnt: spawnSphere, removeAnt: removeSphere} = useActions(exampleActions);
+  const { spawnAnt, removeAnt, spawnFood, removeFood } = useActions(exampleActions);
 
   return (
     <div className={"Container text-white"} id={"app"}>
@@ -16,12 +15,22 @@ export default function App() {
         <SceneContainer/>
       </Canvas>
 
-      <div onClick={spawnSphere} className={"absolute btn btn-blue bottom-5 left-5"}>
-        Spawn Ant!
-      </div>
+      <div className="absolute bottom-5 left-5 flex gap-5">
+        <div onClick={spawnAnt} className={"btn btn-green"}>
+          Spawn Ant!
+        </div>
 
-      <div onClick={removeSphere} className={"absolute btn btn-red bottom-5 left-60"}>
-        Remove Ant!
+        <div onClick={removeAnt} className={"btn btn-red"}>
+          Remove Ant!
+        </div>
+
+        <div onClick={spawnFood} className={"btn btn-purple"}>
+          Spawn Food!
+        </div>
+
+        <div onClick={removeFood} className={"btn btn-red"}>
+          Remove Food!
+        </div>
       </div>
 
       <div className={"absolute bottom-20 left-5"} style={{fontSize: "2.5rem"}}>

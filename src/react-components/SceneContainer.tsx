@@ -3,21 +3,23 @@ import { useFrame } from "@react-three/fiber";
 import { useWorld } from "koota/react";
 import { AntSpawner } from "./AntSpawner";
 import { schedule } from "../ecs";
+import { FoodSpawner } from "./FoodSpawner";
 
 export function SceneContainer() {
   const world = useWorld();
 
   useFrame((_state, delta) => {
     // this is how we connect our ecs systems to r3f
-    schedule.run({world, delta});
+    schedule.run({ world, delta });
   });
 
   return (
     <>
-      <AntSpawner/>
-      <Background/>
-      <OrbitControls dampingFactor={1}/>
-      <PerspectiveCamera makeDefault position={[40, 20, 20]}/>
+      <AntSpawner />
+      <FoodSpawner />
+      <Background />
+      <OrbitControls dampingFactor={1} />
+      <PerspectiveCamera makeDefault position={[40, 20, 20]} />
     </>
   )
 }
@@ -25,8 +27,8 @@ export function SceneContainer() {
 const Background = () => {
   return (
     <>
-      <color attach="background" args={['#060612']}/>
-      <directionalLight castShadow color={"#ffb65e"} intensity={3} position={[4, 3, 1]}/>
+      <color attach="background" args={['#060612']} />
+      <directionalLight castShadow color={"#ffb65e"} intensity={3} position={[4, 3, 1]} />
 
       <Grid
         infiniteGrid

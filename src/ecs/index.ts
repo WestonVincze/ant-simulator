@@ -1,8 +1,8 @@
 import { createWorld, World, createActions } from "koota";
 import { Schedule } from "directed";
 
-import { MoveAntsForward, SyncPositionToThree } from "./systems";
-import { IsAnt, Position } from "./traits";
+import { FindFood, MoveAntsToTarget, SyncPositionToThree } from "./systems";
+import { IsAnt, IsFood, Position } from "./traits";
 
 // create our world
 export const world = createWorld();
@@ -11,8 +11,9 @@ export const world = createWorld();
 export const schedule = new Schedule<{ world: World, delta: number }>();
 
 // import all ecs systems and build the schedule
-schedule.add(MoveAntsForward);
-schedule.add(SyncPositionToThree, {after: MoveAntsForward});
+schedule.add(FindFood, { before: MoveAntsToTarget });
+schedule.add(MoveAntsToTarget);
+schedule.add(SyncPositionToThree, { after: MoveAntsToTarget });
 schedule.build();
 
 // an example actions store to be used from within React.
@@ -32,5 +33,19 @@ export const exampleActions = createActions((world: World) => ({
 
   removeAnt: () => {
     world.queryFirst(IsAnt)?.destroy();
+  },
+
+  spawnFood: () => {
+    const x = Math.random() * 100 - 50;
+    const z = Math.random() * 100 - 50;
+    world.spawn(IsFood, Position({
+      x,
+      y: 0.5,
+      z,
+    }))
+  },
+
+  removeFood: () => {
+    world.queryFirst(IsFood)?.destroy();
   },
 }));
