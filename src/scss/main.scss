@@ -70,8 +70,8 @@ canvas {
 
 
 .btn {
-  @apply font-bold py-4 px-8 rounded flex
-  items-center justify-center max-h-10
+  @apply py-2 px-4 rounded flex
+  items-center justify-center
   min-w-max interaction-button text-xl;
 }
 
