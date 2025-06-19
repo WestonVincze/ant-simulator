@@ -5,10 +5,16 @@ import { Mesh } from "three";
 
 export const IsAnt = trait();
 export const Targeting = relation({ exclusive: true });
+export const Carrying = relation({ exclusive: true });
+export const CarriedBy = relation();
 
-
-export const Position = trait({x: 0, y: 0, z: 0});
+export const Position = trait({ x: 0, y: 0, z: 0 });
 // we only use this mesh as an init value for types, we'll pass the actual mesh when adding this trait
 export const MeshRef = trait({ref: new Mesh});
 
 export const IsFood = trait();
+
+// separate pheromone trails for each ant
+export const Pheromone = trait({ intensity: 0, })
+
+export const IsColony = trait();

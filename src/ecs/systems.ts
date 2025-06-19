@@ -1,12 +1,9 @@
-import { World } from "koota";
+import { Not, World } from "koota";
 import { Quaternion, Vector3 } from "three";
 
-import { IsAnt, IsFood, MeshRef, Position, Targeting } from "./traits";
+import { CarriedBy, Carrying, IsAnt, IsColony, IsFood, MeshRef, Position, Targeting } from "./traits";
 
 // for demo purposes we store all systems in a single file
-
-// =====================================================================================================================
-// =====================================================================================================================
 
 /**
  * Update position of three.js meshes to reflect value of Position trait values 
@@ -18,30 +15,6 @@ export const SyncPositionToThree = ({ world }: { world: World }) => {
   });
 }
 
-// =====================================================================================================================
-// =====================================================================================================================
-
-
-// =====================================================================================================================
-// =====================================================================================================================
-
-
-/**
- * how do ants obtain a target?
- * * check for food source?
- * * * if ant does not have target, check for a food source. If no food source, don't move.
- * 
- * ants need to move toward a target
- * * query for ants with a target
- * * compare positions to set a direction
- */
-
-
-
-// query ants
-// query food
-// for each ant assign the closest food item as a target
-
 const getDistance2D = (pos1: { x: number, z: number }, pos2: { x: number, z: number }): number => {
   const dx = pos1.x - pos2.x;
   const dz = pos1.z - pos2.z;
@@ -49,12 +22,13 @@ const getDistance2D = (pos1: { x: number, z: number }, pos2: { x: number, z: num
 };
 
 export const FindFood = ({ world }: { world: World }) => {
-  const food = world.query(Position, IsFood);
+  const food = world.query(Position, IsFood, Not(CarriedBy("*")));
+  const colony = world.queryFirst(Position, IsColony);
 
-  if (food.length === 0) return;
+  if (food.length === 0 || !colony) return;
 
   // use in place of world.query().forEach() for performance intensive operations
-  for (const entity of world.query(Position, IsAnt)) {
+  for (const entity of world.query(Position, IsAnt, Not(Carrying("*")))) {
     const pos = entity.get(Position);
     // TODO: is this how we should interact with traits when we need a reference to the entity as well? It shouldn't be possible for pos to not exist.
     if (!pos) return;
@@ -62,11 +36,29 @@ export const FindFood = ({ world }: { world: World }) => {
     let closestFood = null;
     let closestDistance = Infinity;
 
+    const target = entity.targetFor(Targeting);
+    const targetCarrier = target?.targetFor(CarriedBy);
+
+    if (targetCarrier && targetCarrier.id !== entity.id) {
+      entity.remove(Targeting("*"));
+    }
+
     for (const f of food) {
       const foodPos = f.get(Position);
       if (!foodPos) continue;
 
       const distance = getDistance2D({ x: pos.x, z: pos.z }, { x: foodPos.x, z: foodPos.z })
+
+      // if a food item is in range, pick it up and kill the loop
+      if (distance < 5) {
+        console.log("PICK IT UP");
+
+        // TODO: does it make sense to use both held and held by?
+        entity.add(Carrying(f));
+        f.add(CarriedBy(entity));
+        entity.add(Targeting(colony));
+        return;
+      }
 
       if (distance < closestDistance) {
         closestDistance = distance;
@@ -80,9 +72,46 @@ export const FindFood = ({ world }: { world: World }) => {
   }
 }
 
+export const DropOffFood = ({ world }: {world: World }) => {
+  const colony = world.queryFirst(Position, IsColony);
+
+  if (!colony) return;
+
+  world.query(Position, IsAnt, Carrying("*"), Targeting(colony)).forEach(entity => {
+    const target = entity.targetFor(Targeting);
+    const targetPos = target?.get(Position);
+    const pos = entity.get(Position);
+
+    if (!targetPos || !pos) return;
+
+    const distance = getDistance2D({ x: pos.x, z: pos.z }, { x: targetPos.x, z: targetPos.z })
+
+    if (distance < 3) {
+      entity.remove(Targeting("*"));
+      entity.remove(Carrying("*"));
+      const food = entity.targetFor(Carrying);
+      food?.remove(CarriedBy("*"));
+      food?.remove(IsFood);
+    }
+  })
+}
+
 const calculateDirection = (from: Vector3, to: Vector3) => {
   const direction = new Vector3(to.x - from.x, to.y - from.y, to.z - from.z);
   return direction.normalize();
+}
+
+export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta: number }) => {
+  world.query(Position, CarriedBy("*"), IsFood).updateEach(([ pos ], entity) => {
+    const ant = entity.targetFor(CarriedBy);
+    const antPosition = ant?.get(Position);
+
+    if (!antPosition) return;
+
+    pos.x = antPosition.x;
+    pos.y = antPosition.y;
+    pos.z = antPosition.z;
+  });
 }
 
 export const MoveAntsToTarget = ({ world, delta }: { world: World, delta: number }) => {
@@ -94,7 +123,7 @@ export const MoveAntsToTarget = ({ world, delta }: { world: World, delta: number
     const target = entity.targetFor(Targeting);
     const targetPos = target?.get(Position);
 
-    if (!targetPos) return;
+    if (!target || !targetPos) return;
 
     // Calculate direction vector from rotation
     const direction = calculateDirection(new Vector3(pos.x, 0, pos.z), new Vector3(targetPos.x, 0, targetPos.z));
@@ -104,7 +133,7 @@ export const MoveAntsToTarget = ({ world, delta }: { world: World, delta: number
     // direction.applyQuaternion(mesh.quaternion); // Apply rotation to get world direction
 
     // Update position to move in the direction of the rotation
-    const speed = 2;
+    const speed = 8;
     pos.x += direction.x * speed * delta;
     pos.y += direction.y * speed * delta;
     pos.z += direction.z * speed * delta;

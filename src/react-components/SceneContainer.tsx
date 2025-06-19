@@ -4,9 +4,16 @@ import { useWorld } from "koota/react";
 import { AntSpawner } from "./AntSpawner";
 import { schedule } from "../ecs";
 import { FoodSpawner } from "./FoodSpawner";
+import { Colony } from "./Colony";
+import { useEffect } from "react";
+import { IsColony, Position } from "../ecs/traits";
 
 export function SceneContainer() {
   const world = useWorld();
+
+  useEffect(() => {
+    world.spawn(IsColony, Position({ x: 0, y: 2.5, z: 0 }));
+  }, [])
 
   useFrame((_state, delta) => {
     // this is how we connect our ecs systems to r3f
@@ -15,6 +22,7 @@ export function SceneContainer() {
 
   return (
     <>
+      <Colony />
       <AntSpawner />
       <FoodSpawner />
       <Background />

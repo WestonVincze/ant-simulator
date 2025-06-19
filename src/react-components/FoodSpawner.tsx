@@ -28,7 +28,7 @@ export function Food({ entity }: { entity: Entity }) {
 
   return (
     <mesh ref={meshRef} castShadow receiveShadow>
-      <sphereGeometry args={[0.65, 18, 18]}/>
+      <sphereGeometry args={[0.35, 18, 18]}/>
       <meshStandardMaterial color={"gold"}/>
     </mesh>
   )
