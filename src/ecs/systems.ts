@@ -1,7 +1,7 @@
 import { Not, World } from "koota";
 import { Quaternion, Vector3 } from "three";
 
-import { CarriedBy, Carrying, IsAnt, IsColony, IsFood, MeshRef, Position, Targeting } from "./traits";
+import { CarriedBy, Carrying, IsAnt, IsColony, IsFood, MeshRef, Position, RandomDirection, Targeting } from "./traits";
 
 // for demo purposes we store all systems in a single file
 
@@ -22,6 +22,8 @@ const getDistance2D = (pos1: { x: number, z: number }, pos2: { x: number, z: num
 };
 
 export const FindFood = ({ world }: { world: World }) => {
+  const FOOD_DETECTION_RANGE = 25;
+
   const food = world.query(Position, IsFood, Not(CarriedBy("*")));
   const colony = world.queryFirst(Position, IsColony);
 
@@ -48,6 +50,8 @@ export const FindFood = ({ world }: { world: World }) => {
       if (!foodPos) continue;
 
       const distance = getDistance2D({ x: pos.x, z: pos.z }, { x: foodPos.x, z: foodPos.z })
+
+      if (distance > FOOD_DETECTION_RANGE) continue;
 
       // if a food item is in range, pick it up and kill the loop
       if (distance < 5) {
@@ -114,7 +118,57 @@ export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta:
   });
 }
 
+// ants move "randomly" when they don't have a target
+export const ScoutForFood = ({ world, delta }: { world: World, delta: number }) => {
+  const RANDOM_DIRECTION_UPDATE_INTERVAL = 1;
+  const SCOUT_SPEED = 4;
+  const MAX_TURN_ANGLE = Math.PI / 6;
+  const ROTATION_SPEED = 2;
+
+  world.query(Position, MeshRef, IsAnt, Not(Targeting("*"))).updateEach(([ pos, meshRef ], entity) => {
+    let randomDirection  = entity.get(RandomDirection);
+
+    if (!randomDirection) {
+      const direction = new Vector3(
+        Math.random() * 2 - 1,
+        0,
+        Math.random() * 2 - 1
+      ).normalize();
+      entity.add(RandomDirection({ direction, timeSinceLastUpdate: 0 }))
+      randomDirection = entity.get(RandomDirection)!;
+    }
+
+    entity.set(RandomDirection, rd => ({
+      direction: rd.direction,
+      timeSinceLastUpdate: rd.timeSinceLastUpdate += delta 
+    }));
+
+    if (randomDirection.timeSinceLastUpdate >= RANDOM_DIRECTION_UPDATE_INTERVAL) {
+      const randomAngle = (Math.random() * 2 - 1) * MAX_TURN_ANGLE;
+
+      // Rotate the current direction vector by the random angle
+      const newDirection = new Vector3(
+        randomDirection.direction.x * Math.cos(randomAngle) - randomDirection.direction.z * Math.sin(randomAngle),
+        0,
+        randomDirection.direction.x * Math.sin(randomAngle) + randomDirection.direction.z * Math.cos(randomAngle)
+      ).normalize();
+
+      entity.set(RandomDirection, {
+        direction: newDirection,
+        timeSinceLastUpdate: 0,
+      });
+    }
+
+    const quaternion = new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), randomDirection.direction);
+    meshRef.ref.quaternion.slerp(quaternion, ROTATION_SPEED * delta);
+
+    pos.x += randomDirection.direction.x * SCOUT_SPEED * delta;
+    pos.z += randomDirection.direction.z * SCOUT_SPEED * delta;
+  })
+}
+
 export const MoveAntsToTarget = ({ world, delta }: { world: World, delta: number }) => {
+  const ROTATION_SPEED = 2;
   world.query(Position, MeshRef, Targeting('*'), IsAnt).updateEach(([ pos, meshRef ], entity) => {
     const mesh = meshRef.ref;
 
@@ -129,11 +183,12 @@ export const MoveAntsToTarget = ({ world, delta }: { world: World, delta: number
     const direction = calculateDirection(new Vector3(pos.x, 0, pos.z), new Vector3(targetPos.x, 0, targetPos.z));
 
     const quaternion = new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), direction)
-    mesh.quaternion.copy(quaternion);
+    // mesh.quaternion.copy(quaternion);
+    mesh.quaternion.slerp(quaternion, ROTATION_SPEED * delta);
     // direction.applyQuaternion(mesh.quaternion); // Apply rotation to get world direction
 
     // Update position to move in the direction of the rotation
-    const speed = 8;
+    const speed = 4;
     pos.x += direction.x * speed * delta;
     pos.y += direction.y * speed * delta;
     pos.z += direction.z * speed * delta;
