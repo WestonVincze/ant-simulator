@@ -7,6 +7,7 @@ import { FoodSpawner } from "./FoodSpawner";
 import { Colony } from "./Colony";
 import { useEffect } from "react";
 import { IsColony, Position } from "../ecs/traits";
+import { Pheromones } from "./Pheromones";
 
 export function SceneContainer() {
   const world = useWorld();
@@ -23,6 +24,7 @@ export function SceneContainer() {
   return (
     <>
       <Colony />
+      <Pheromones />
       <AntSpawner />
       <FoodSpawner />
       <Background />

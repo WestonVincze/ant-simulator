@@ -19,7 +19,19 @@ export const MeshRef = trait({ref: new Mesh});
 
 export const IsFood = trait();
 
-// separate pheromone trails for each ant
-export const Pheromone = trait({ intensity: 0, })
-
 export const IsColony = trait();
+
+// separate pheromone trails for each ant
+type PheromoneSchema = {
+  intensity: number;
+  type: "return" | "food";
+}
+
+export const Pheromone = trait<PheromoneSchema>({
+  intensity: 0,
+  type: "return"
+});
+
+export const PheromoneSpawner = trait({ 
+  timeSinceLastSpawn: 0
+})

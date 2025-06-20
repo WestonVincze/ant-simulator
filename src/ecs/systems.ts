@@ -1,7 +1,7 @@
 import { Not, World } from "koota";
-import { Quaternion, Vector3 } from "three";
+import { MeshStandardMaterial, Quaternion, Vector3 } from "three";
 
-import { CarriedBy, Carrying, IsAnt, IsColony, IsFood, MeshRef, Position, RandomDirection, Targeting } from "./traits";
+import { CarriedBy, Carrying, IsAnt, IsColony, IsFood, MeshRef, Pheromone, PheromoneSpawner, Position, RandomDirection, Targeting } from "./traits";
 
 // for demo purposes we store all systems in a single file
 
@@ -22,7 +22,7 @@ const getDistance2D = (pos1: { x: number, z: number }, pos2: { x: number, z: num
 };
 
 export const FindFood = ({ world }: { world: World }) => {
-  const FOOD_DETECTION_RANGE = 25;
+  const FOOD_DETECTION_RANGE = 10;
 
   const food = world.query(Position, IsFood, Not(CarriedBy("*")));
   const colony = world.queryFirst(Position, IsColony);
@@ -112,9 +112,41 @@ export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta:
 
     if (!antPosition) return;
 
+    // TODO: compensate for rotation of ant as well
     pos.x = antPosition.x;
     pos.y = antPosition.y;
     pos.z = antPosition.z;
+  });
+}
+
+export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: number }) => {
+  const PHEROMONE_DROP_INTERVAL = 0.3;
+
+  world.query(PheromoneSpawner, Position).updateEach(([ spawner, pos ], entity) => {
+    spawner.timeSinceLastSpawn += delta
+
+    if (spawner.timeSinceLastSpawn >= PHEROMONE_DROP_INTERVAL) {
+      const type = entity.has(Targeting("*")) ? "food" : "return";
+      world.spawn(Pheromone({ intensity: 1, type }), Position(pos));
+      spawner.timeSinceLastSpawn = 0;
+    }
+  });
+}
+
+export const DegradePheromones = ({ world, delta }: { world: World, delta: number }) => {
+  const pheromones = world.query(Pheromone, MeshRef)
+
+  pheromones.updateEach(([ pheromone, meshRef ], entity) => {
+    pheromone.intensity -= 0.01 * delta;
+    const mesh = meshRef.ref;
+    if (mesh) {
+      const material = mesh.material as MeshStandardMaterial;
+      material.opacity = Math.max(pheromone.intensity, 0);
+    }
+
+    if (pheromone.intensity <= 0) {
+      entity?.destroy();
+    }
   });
 }
 

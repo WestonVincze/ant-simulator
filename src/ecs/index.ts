@@ -1,8 +1,8 @@
 import { createWorld, World, createActions } from "koota";
 import { Schedule } from "directed";
 
-import { DropOffFood, FindFood, MoveAntsToTarget, ScoutForFood, SyncCarriedFoodPosition, SyncPositionToThree } from "./systems";
-import { IsAnt, IsFood, Position } from "./traits";
+import { DegradePheromones, DropOffFood, FindFood, LeavePheromoneTrail, MoveAntsToTarget, ScoutForFood, SyncCarriedFoodPosition, SyncPositionToThree } from "./systems";
+import { IsAnt, IsFood, PheromoneSpawner, Position } from "./traits";
 
 // create our world
 export const world = createWorld();
@@ -15,8 +15,10 @@ schedule.add(FindFood, { before: MoveAntsToTarget });
 schedule.add(DropOffFood, { after: FindFood });
 schedule.add(ScoutForFood, { after: FindFood })
 schedule.add(MoveAntsToTarget);
+schedule.add(LeavePheromoneTrail, { after: MoveAntsToTarget })
+schedule.add(SyncPositionToThree, { after: LeavePheromoneTrail });
 schedule.add(SyncCarriedFoodPosition, { before: SyncPositionToThree});
-schedule.add(SyncPositionToThree, { after: MoveAntsToTarget });
+schedule.add(DegradePheromones, { before: SyncPositionToThree });
 schedule.build();
 
 // an example actions store to be used from within React.
@@ -27,11 +29,15 @@ export const exampleActions = createActions((world: World) => ({
   spawnAnt: () => {
     const x = Math.random() * 70 - 35;
     const z = Math.random() * 70 - 35;
-    world.spawn(IsAnt, Position({
-      x,
-      y: 0,
-      z,
-    }))
+    world.spawn(
+      IsAnt,
+      Position({
+        x,
+        y: 0,
+        z,
+      }),
+      PheromoneSpawner({ timeSinceLastSpawn: 0 })
+    )
   },
 
   removeAnt: () => {
