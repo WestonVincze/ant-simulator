@@ -1,8 +1,8 @@
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Entity } from "koota";
-import { useQuery } from "koota/react";
-import { Group, Mesh } from "three";
+import { useQuery, useTrait } from "koota/react";
+import { Group, Mesh, Vector3 } from "three";
 import { MeshRef, Pheromone, Position } from "../ecs/traits";
 
 export function Pheromones() {
@@ -18,7 +18,8 @@ export function Pheromones() {
 
 export function PheromoneMesh({ entity }: { entity: Entity }) {
   const meshRef = useRef<Mesh>(null!);
-  const color = entity.get(Pheromone)?.type === "food" ? "red" : "blue";
+  const pheromone = useTrait(entity, Pheromone)
+  const position = useTrait(entity, Position)
 
   useEffect(() => {
     entity.add(MeshRef({ ref: meshRef.current }))
@@ -29,9 +30,9 @@ export function PheromoneMesh({ entity }: { entity: Entity }) {
   }, [entity]);
 
   return (
-    <mesh ref={meshRef} castShadow receiveShadow>
-      <dodecahedronGeometry args={[0.25]} />
-      <meshStandardMaterial color={color} transparent={true} />
+    <mesh ref={meshRef} position={new Vector3(position?.x, position?.y,position?.z)}>
+      <dodecahedronGeometry args={[0.15]} />
+      <meshStandardMaterial color={pheromone?.type === "food" ? "red" : "blue"} /*transparent={true} */ />
     </mesh>
   )
 }

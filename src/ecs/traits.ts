@@ -35,3 +35,5 @@ export const Pheromone = trait<PheromoneSchema>({
 export const PheromoneSpawner = trait({ 
   timeSinceLastSpawn: 0
 })
+
+export const Static = trait();
