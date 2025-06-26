@@ -1,9 +1,12 @@
 import { createAdded, Not, World } from "koota";
 import { MeshStandardMaterial, Quaternion, Vector3 } from "three";
+import RBush from "rbush";
 
 import { CarriedBy, Carrying, IsAnt, IsColony, IsFood, MeshRef, Pheromone, PheromoneSpawner, Position, RandomDirection, Static, Targeting } from "./traits";
 
 // for demo purposes we store all systems in a single file
+
+const pheromoneTree = new RBush();
 
 /**
  * Update position of three.js meshes to reflect value of Position trait values 
@@ -119,6 +122,54 @@ export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta:
   });
 }
 
+/**
+ * FOLLOW PHEROMONE TRAILS
+ * detect pheromones in range and decide whether to follow them
+ * first detect all pheromones in range
+ * calculate the direction with the most pheromones
+ */
+
+export const DetectPheromones = ({ world }: { world: World }) => {
+  const PHEROMONE_DETECTION_RANGE = 10;
+
+  world.query(Position, IsAnt, Not(Targeting("*"))).updateEach(([ pos ], entity) => {
+    const antPos = { x: pos.x, z: pos.z };
+    const pheromonesInRange = pheromoneTree.search({
+      minX: antPos.x - PHEROMONE_DETECTION_RANGE,
+      minY: antPos.z - PHEROMONE_DETECTION_RANGE,
+      maxX: antPos.x + PHEROMONE_DETECTION_RANGE,
+      maxY: antPos.z + PHEROMONE_DETECTION_RANGE
+    });
+
+    if (pheromonesInRange.length === 0) return;
+
+    // calculate the direction with the most pheromones
+    const directionCount = new Map<string, number>();
+
+    for (const pheromone of pheromonesInRange as any) {
+      const directionKey = `${pheromone.minX},${pheromone.minY}`;
+      directionCount.set(directionKey, (directionCount.get(directionKey) || 0) + 1);
+    }
+
+    let bestDirection = null;
+    let maxCount = 0;
+
+    for (const [direction, count] of directionCount.entries()) {
+      if (count > maxCount) {
+        maxCount = count;
+        bestDirection = direction.split(',').map(Number);
+      }
+    }
+
+    /*
+    if (bestDirection) {
+      const targetPos = new Vector3(bestDirection[0], 0, bestDirection[1]);
+      entity.add(Targeting(targetPos));
+    }
+    */
+  })
+}
+
 export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: number }) => {
   const PHEROMONE_DROP_INTERVAL = 0.3;
 
@@ -126,8 +177,16 @@ export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: num
     spawner.timeSinceLastSpawn += delta
 
     if (spawner.timeSinceLastSpawn >= PHEROMONE_DROP_INTERVAL) {
-      const type = entity.has(Targeting("*")) ? "food" : "return";
+      const type = entity.has(Carrying("*")) ? "food" : "return";
       world.spawn(Pheromone({ intensity: 1, type }), Position(pos), Static);
+      pheromoneTree.insert({
+        minX: pos.x,
+        minY: pos.z,
+        maxX: pos.x,
+        maxY: pos.z,
+        entityId: entity.id,
+        type
+      })
       spawner.timeSinceLastSpawn = 0;
     }
   });
@@ -147,7 +206,7 @@ export const DegradePheromones = ({ world, delta }: { world: World, delta: numbe
 
     timeSinceLastUpdate = 0;
 
-    pheromone.intensity -= 0.1 * delta;
+    pheromone.intensity -= 0.5 * delta;
     /* remove opacity for now
     const mesh = meshRef.ref;
     if (mesh && pheromone.intensity ) {

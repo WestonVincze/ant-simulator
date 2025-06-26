@@ -1,7 +1,7 @@
 import { createWorld, World, createActions } from "koota";
 import { Schedule } from "directed";
 
-import { DegradePheromones, DropOffFood, FindFood, LeavePheromoneTrail, MoveAntsToTarget, ScoutForFood, SyncCarriedFoodPosition, SyncPositionToThree } from "./systems";
+import { DegradePheromones, DetectPheromones, DropOffFood, FindFood, LeavePheromoneTrail, MoveAntsToTarget, ScoutForFood, SyncCarriedFoodPosition, SyncPositionToThree } from "./systems";
 import { IsAnt, IsFood, PheromoneSpawner, Position } from "./traits";
 
 // create our world
@@ -11,6 +11,7 @@ export const world = createWorld();
 export const schedule = new Schedule<{ world: World, delta: number }>();
 
 // import all ecs systems and build the schedule
+schedule.add(DetectPheromones, { before: FindFood });
 schedule.add(FindFood, { before: MoveAntsToTarget });
 schedule.add(DropOffFood, { after: FindFood });
 schedule.add(ScoutForFood, { after: FindFood })
