@@ -1,21 +1,27 @@
 import { createAdded, Not, World } from "koota";
-import { MeshStandardMaterial, Quaternion, Vector3 } from "three";
-import RBush from "rbush";
+import { Quaternion, Vector3 } from "three";
 
-import { CarriedBy, Carrying, IsAnt, IsColony, IsFood, MeshRef, Pheromone, PheromoneSpawner, Position, RandomDirection, Sensor, Static, Targeting } from "./traits";
+import { CarriedBy, Carrying, Direction, IsAnt, IsColony, IsFood, MeshRef, Move, Position, RandomDirection, Static, Targeting } from "./traits";
 
 // for demo purposes we store all systems in a single file
-
-const pheromoneMap = new Map();
-const pheromoneTree = new RBush<{ entityId: number, type: string }>();
 
 /**
  * Update position of three.js meshes to reflect value of Position trait values 
  */
+const Added = createAdded();
+
 export const SyncPositionToThree = ({ world }: { world: World }) => {
-  world.query(Position, MeshRef, Not(Static)).updateEach(([pos, { ref: mesh }]) => {
+  // static entities 
+  world.query(Added(Position, MeshRef, Static)).updateEach(([ pos, { ref: mesh }]) => {
+    console.log("static asset added")
+    mesh.position.copy(pos);
+  })
+
+  world.query(Position, Direction, MeshRef, Not(Static)).updateEach(([pos, dir, { ref: mesh }]) => {
     // sync back to three
     mesh.position.copy(pos);
+    const target = pos.clone().add(dir.current);
+    mesh.lookAt(target);
   });
 }
 
@@ -123,148 +129,6 @@ export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta:
   });
 }
 
-/**
- * FOLLOW PHEROMONE TRAILS
- * detect pheromones in range and decide whether to follow them
- * first detect all pheromones in range
- * calculate the direction with the most pheromones?
- */
-
-export const DetectPheromones = ({ world }: { world: World }) => {
-  /**
-   * create three sensors in front of the ant
-   * each sensor will check for all pheromones in range
-   * whichever sensor has the highest value for the pheromone we're trying to detect controls the direction that the ant will travel (left, forward, or right)
-   *    O <----.
-   * O     O <-- sensors
-   *    A
-   *    N
-   *    T
-   * 
-   * 
-   * SYSTEM DESIGN:
-   * each sensor has a input command, output command, position, and a net value
-   * each ant will have a relation with three sensors
-   * 
-   */
-  const PHEROMONE_DETECTION_RANGE = 10;
-
-  world.query(Position, Sensor).updateEach(([ pos, sensor]) => {
-    const pheromonesInRange = pheromoneTree.search({
-      minX: pos.x - sensor.radius,
-      minY: pos.z - sensor.radius,
-      maxX: pos.x + sensor.radius,
-      maxY: pos.z + sensor.radius 
-    })
-
-    if (sensor.lookingFor === "food") {
-      const food = pheromonesInRange.filter(item => item.type === 'food')
-      // update net value 
-
-    } else if (sensor.lookingFor === "home") {
-
-    }
-  })
-
-  world.query(Position, IsAnt, Not(Targeting("*"))).updateEach(([ pos ], entity) => {
-    const antPos = { x: pos.x, z: pos.z };
-    const pheromonesInRange = pheromoneTree.search({
-      minX: antPos.x - PHEROMONE_DETECTION_RANGE,
-      minY: antPos.z - PHEROMONE_DETECTION_RANGE,
-      maxX: antPos.x + PHEROMONE_DETECTION_RANGE,
-      maxY: antPos.z + PHEROMONE_DETECTION_RANGE
-    });
-
-    if (pheromonesInRange.length === 0) return;
-
-    // calculate the direction with the most pheromones
-    const directionCount = new Map<string, number>();
-
-    for (const pheromone of pheromonesInRange as any) {
-      const directionKey = `${pheromone.minX},${pheromone.minY}`;
-      directionCount.set(directionKey, (directionCount.get(directionKey) || 0) + 1);
-    }
-
-    let bestDirection = null;
-    let maxCount = 0;
-
-    for (const [direction, count] of directionCount.entries()) {
-      if (count > maxCount) {
-        maxCount = count;
-        bestDirection = direction.split(',').map(Number);
-      }
-    }
-
-    /*
-    if (bestDirection) {
-      const targetPos = new Vector3(bestDirection[0], 0, bestDirection[1]);
-      const t = world.spawn(Position(targetPos));
-      entity.add(Targeting(t));
-    }
-    */
-  })
-}
-
-export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: number }) => {
-  const PHEROMONE_DROP_INTERVAL = 0.3;
-
-  world.query(PheromoneSpawner, Position).updateEach(([ spawner, pos ], entity) => {
-    spawner.timeSinceLastSpawn += delta
-
-    if (spawner.timeSinceLastSpawn >= PHEROMONE_DROP_INTERVAL) {
-      const type = entity.has(Carrying("*")) ? "food" : "return";
-      world.spawn(Pheromone({ intensity: 1, type }), Position(pos), Static);
-      const pheromone = {
-        minX: pos.x,
-        minY: pos.z,
-        maxX: pos.x,
-        maxY: pos.z,
-        entityId: entity.id(),
-        type
-      }
-      pheromoneMap.set(entity.id, pheromone);
-      pheromoneTree.insert(pheromone)
-      spawner.timeSinceLastSpawn = 0;
-    }
-  });
-}
-
-export const DegradePheromones = ({ world, delta }: { world: World, delta: number }) => {
-  /*
-  const UPDATE_INTERVAL = 1;
-
-  let timeSinceLastUpdate = 0;
-  */
-
-  const pheromones = world.query(Pheromone, MeshRef)
-
-  console.log(pheromoneTree);
-  pheromones.updateEach(([ pheromone ], entity) => {
-    /*
-    timeSinceLastUpdate += delta;
-
-    if (timeSinceLastUpdate < UPDATE_INTERVAL) return;
-
-    timeSinceLastUpdate = 0;
-    */
-
-    pheromone.intensity -= 0.5 * delta;
-    /* remove opacity for now
-    const mesh = meshRef.ref;
-    if (mesh && pheromone.intensity ) {
-      const material = mesh.material as MeshStandardMaterial;
-      material.opacity = Math.max(pheromone.intensity, 0);
-    }
-      */
-
-    if (pheromone.intensity <= 0) {
-      entity?.destroy();
-
-      pheromoneTree.remove(pheromoneMap.get(entity.id));
-      pheromoneMap.delete(entity.id);
-    }
-  });
-}
 
 // ants move "randomly" when they don't have a target
 export const ScoutForFood = ({ world, delta }: { world: World, delta: number }) => {
@@ -273,7 +137,7 @@ export const ScoutForFood = ({ world, delta }: { world: World, delta: number }) 
   const MAX_TURN_ANGLE = Math.PI / 6;
   const ROTATION_SPEED = 2;
 
-  world.query(Position, MeshRef, IsAnt, Not(Targeting("*"))).updateEach(([ pos, meshRef ], entity) => {
+  world.query(Position, Direction, MeshRef, IsAnt, Not(Targeting("*"))).updateEach(([ pos, dir, meshRef ], entity) => {
     let randomDirection  = entity.get(RandomDirection);
 
     if (!randomDirection) {
@@ -282,36 +146,54 @@ export const ScoutForFood = ({ world, delta }: { world: World, delta: number }) 
         0,
         Math.random() * 2 - 1
       ).normalize();
-      entity.add(RandomDirection({ direction, timeSinceLastUpdate: 0 }))
-      randomDirection = entity.get(RandomDirection)!;
+
+      randomDirection = { 
+        direction,
+        timeSinceLastUpdate: 0
+      }
+
+      entity.add(RandomDirection(randomDirection))
     }
 
-    entity.set(RandomDirection, rd => ({
-      direction: rd.direction,
-      timeSinceLastUpdate: rd.timeSinceLastUpdate += delta 
-    }));
+    randomDirection.timeSinceLastUpdate += delta;
 
     if (randomDirection.timeSinceLastUpdate >= RANDOM_DIRECTION_UPDATE_INTERVAL) {
       const randomAngle = (Math.random() * 2 - 1) * MAX_TURN_ANGLE;
 
-      // Rotate the current direction vector by the random angle
-      const newDirection = new Vector3(
-        randomDirection.direction.x * Math.cos(randomAngle) - randomDirection.direction.z * Math.sin(randomAngle),
-        0,
-        randomDirection.direction.x * Math.sin(randomAngle) + randomDirection.direction.z * Math.cos(randomAngle)
-      ).normalize();
+      const q = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), randomAngle);
 
-      entity.set(RandomDirection, {
-        direction: newDirection,
-        timeSinceLastUpdate: 0,
-      });
+      const newDirection = randomDirection.direction.clone().applyQuaternion(q).normalize();
+
+      randomDirection.direction.copy(newDirection);
+      randomDirection.timeSinceLastUpdate = 0;
     }
 
+    entity.set(RandomDirection, randomDirection);
+
+    dir.desired.copy(randomDirection.direction);
+
+
+    /*
     const quaternion = new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), randomDirection.direction);
     meshRef.ref.quaternion.slerp(quaternion, ROTATION_SPEED * delta);
 
     pos.x += randomDirection.direction.x * SCOUT_SPEED * delta;
     pos.z += randomDirection.direction.z * SCOUT_SPEED * delta;
+    */
+  })
+}
+
+export const HandleRotation = ({ world, delta }: { world: World, delta: number }) => {
+  world.query(Direction).updateEach(([ dir ]) => {
+    dir.current.lerp(dir.desired, 0.01).normalize();
+  })
+}
+
+export const HandleMove = ({ world, delta }: { world: World, delta: number }) => {
+  world.query(Position, Direction, Move).updateEach(([ pos, dir, move ]) => {
+    pos.x += dir.current.x * move.speed * delta;
+    pos.y += dir.current.y * move.speed * delta;
+    pos.z += dir.current.z * move.speed * delta;
   })
 }
 

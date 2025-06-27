@@ -7,22 +7,35 @@ export const IsAnt = trait();
 export const Targeting = relation({ exclusive: true });
 export const Carrying = relation({ exclusive: true });
 export const CarriedBy = relation();
-export const Direction = trait({ x: 0, y: 0, z: 0});
+
+export const Move = trait({
+  speed: 4
+})
+
+export const Direction = trait({
+  desired: () => new Vector3,
+  current: () => new Vector3,
+});
 
 export const RandomDirection = trait({
-  direction: { x: 0, y: 0, z: 0 },
+  direction: () => new Vector3,
   timeSinceLastUpdate: 0
 })
 
-export const Sensor = trait({
+export const Sensors = trait({
+  frontOffset: () => new Vector3,
+  leftOffset: () => new Vector3,
+  rightOffset:() => new Vector3,
   lookingFor: "food",
-  position: Vector3,
+  // position: () => new Vector3,
   value: 0,
   action: "forward",
   radius: 5
 })
 
-export const Position = trait({ x: 0, y: 0, z: 0 });
+// each ant has 3 sensors
+
+export const Position = trait(() => new Vector3);
 // we only use this mesh as an init value for types, we'll pass the actual mesh when adding this trait
 export const MeshRef = trait({ref: new Mesh});
 
@@ -33,12 +46,12 @@ export const IsColony = trait();
 // separate pheromone trails for each ant
 type PheromoneSchema = {
   intensity: number;
-  type: "return" | "food";
+  type: "home" | "food";
 }
 
 export const Pheromone = trait<PheromoneSchema>({
   intensity: 0,
-  type: "return"
+  type: "home"
 });
 
 export const PheromoneSpawner = trait({ 

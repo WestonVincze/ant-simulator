@@ -1,8 +1,10 @@
 import { createWorld, World, createActions } from "koota";
 import { Schedule } from "directed";
 
-import { DegradePheromones, DetectPheromones, DropOffFood, FindFood, LeavePheromoneTrail, MoveAntsToTarget, ScoutForFood, SyncCarriedFoodPosition, SyncPositionToThree } from "./systems";
-import { IsAnt, IsFood, PheromoneSpawner, Position } from "./traits";
+import { DropOffFood, FindFood, HandleMove, HandleRotation, ScoutForFood, SyncCarriedFoodPosition, SyncPositionToThree } from "./systems";
+import { Direction, IsAnt, IsColony, IsFood, Move, Pheromone, PheromoneSpawner, Position, Static } from "./traits";
+import { Vector3 } from "three";
+import { DegradePheromones, DetectPheromones, LeavePheromoneTrail } from "./systems/pheromones";
 
 // create our world
 export const world = createWorld();
@@ -12,15 +14,19 @@ export const schedule = new Schedule<{ world: World, delta: number }>();
 
 // import all ecs systems and build the schedule
 schedule.add(DetectPheromones, { before: FindFood });
-schedule.add(FindFood, { before: MoveAntsToTarget });
+schedule.add(FindFood, { before: HandleMove });
 schedule.add(DropOffFood, { after: FindFood });
 schedule.add(ScoutForFood, { after: FindFood })
-schedule.add(MoveAntsToTarget);
-schedule.add(LeavePheromoneTrail, { after: MoveAntsToTarget })
+// schedule.add(MoveAntsToTarget);
+schedule.add(HandleMove);
+schedule.add(LeavePheromoneTrail, { after: HandleMove })
+schedule.add(HandleRotation), { before: SyncPositionToThree };
 schedule.add(SyncPositionToThree, { after: LeavePheromoneTrail });
 schedule.add(SyncCarriedFoodPosition, { before: SyncPositionToThree});
 schedule.add(DegradePheromones, { before: SyncPositionToThree });
 schedule.build();
+
+world.spawn(IsColony, Position(new Vector3(0, 2.5, 0)), Static);
 
 // an example actions store to be used from within React.
 // Creating action stores is optional – we can execute the code directly –
@@ -32,12 +38,10 @@ export const exampleActions = createActions((world: World) => ({
     const z = Math.random() * 70 - 35;
     world.spawn(
       IsAnt,
-      Position({
-        x,
-        y: 0,
-        z,
-      }),
-      PheromoneSpawner({ timeSinceLastSpawn: 0 })
+      Position(new Vector3(x, 0, z)),
+      Direction(),
+      PheromoneSpawner({ timeSinceLastSpawn: 0 }),
+      Move(),
     )
   },
 
@@ -48,14 +52,14 @@ export const exampleActions = createActions((world: World) => ({
   spawnFood: () => {
     const x = Math.random() * 100 - 50;
     const z = Math.random() * 100 - 50;
-    world.spawn(IsFood, Position({
-      x,
-      y: 0.5,
-      z,
-    }))
+    world.spawn(IsFood, Position(new Vector3(x, 0.5, z)));
   },
 
   removeFood: () => {
     world.queryFirst(IsFood)?.destroy();
   },
+
+  spawnPheromone: (x: number, y: number, z: number) => {
+    world.spawn(Pheromone({ intensity: 1, type: "food" }), Position(new Vector3(x, y, z)), Static)
+  }
 }));
