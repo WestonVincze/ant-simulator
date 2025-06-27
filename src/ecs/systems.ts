@@ -2,12 +2,12 @@ import { createAdded, Not, World } from "koota";
 import { MeshStandardMaterial, Quaternion, Vector3 } from "three";
 import RBush from "rbush";
 
-import { CarriedBy, Carrying, IsAnt, IsColony, IsFood, MeshRef, Pheromone, PheromoneSpawner, Position, RandomDirection, Static, Targeting } from "./traits";
+import { CarriedBy, Carrying, IsAnt, IsColony, IsFood, MeshRef, Pheromone, PheromoneSpawner, Position, RandomDirection, Sensor, Static, Targeting } from "./traits";
 
 // for demo purposes we store all systems in a single file
 
 const pheromoneMap = new Map();
-const pheromoneTree = new RBush();
+const pheromoneTree = new RBush<{ entityId: number, type: string }>();
 
 /**
  * Update position of three.js meshes to reflect value of Position trait values 
@@ -127,11 +127,44 @@ export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta:
  * FOLLOW PHEROMONE TRAILS
  * detect pheromones in range and decide whether to follow them
  * first detect all pheromones in range
- * calculate the direction with the most pheromones
+ * calculate the direction with the most pheromones?
  */
 
 export const DetectPheromones = ({ world }: { world: World }) => {
+  /**
+   * create three sensors in front of the ant
+   * each sensor will check for all pheromones in range
+   * whichever sensor has the highest value for the pheromone we're trying to detect controls the direction that the ant will travel (left, forward, or right)
+   *    O <----.
+   * O     O <-- sensors
+   *    A
+   *    N
+   *    T
+   * 
+   * 
+   * SYSTEM DESIGN:
+   * each sensor has a input command, output command, position, and a net value
+   * each ant will have a relation with three sensors
+   * 
+   */
   const PHEROMONE_DETECTION_RANGE = 10;
+
+  world.query(Position, Sensor).updateEach(([ pos, sensor]) => {
+    const pheromonesInRange = pheromoneTree.search({
+      minX: pos.x - sensor.radius,
+      minY: pos.z - sensor.radius,
+      maxX: pos.x + sensor.radius,
+      maxY: pos.z + sensor.radius 
+    })
+
+    if (sensor.lookingFor === "food") {
+      const food = pheromonesInRange.filter(item => item.type === 'food')
+      // update net value 
+
+    } else if (sensor.lookingFor === "home") {
+
+    }
+  })
 
   world.query(Position, IsAnt, Not(Targeting("*"))).updateEach(([ pos ], entity) => {
     const antPos = { x: pos.x, z: pos.z };
@@ -186,7 +219,7 @@ export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: num
         minY: pos.z,
         maxX: pos.x,
         maxY: pos.z,
-        entityId: entity.id,
+        entityId: entity.id(),
         type
       }
       pheromoneMap.set(entity.id, pheromone);

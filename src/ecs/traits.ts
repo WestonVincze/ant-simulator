@@ -1,5 +1,5 @@
 import { relation, trait } from "koota";
-import { Mesh } from "three";
+import { Mesh, Vector3 } from "three";
 
 // for demo purposes we store all traits (ecs components) in a single file
 
@@ -7,10 +7,19 @@ export const IsAnt = trait();
 export const Targeting = relation({ exclusive: true });
 export const Carrying = relation({ exclusive: true });
 export const CarriedBy = relation();
+export const Direction = trait({ x: 0, y: 0, z: 0});
 
 export const RandomDirection = trait({
   direction: { x: 0, y: 0, z: 0 },
   timeSinceLastUpdate: 0
+})
+
+export const Sensor = trait({
+  lookingFor: "food",
+  position: Vector3,
+  value: 0,
+  action: "forward",
+  radius: 5
 })
 
 export const Position = trait({ x: 0, y: 0, z: 0 });
