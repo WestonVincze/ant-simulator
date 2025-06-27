@@ -1,7 +1,7 @@
 import { createAdded, Not, World } from "koota";
 import { Quaternion, Vector3 } from "three";
 
-import { CarriedBy, Carrying, Direction, IsAnt, IsColony, IsFood, MeshRef, Move, Position, RandomDirection, Static, Targeting } from "./traits";
+import { CarriedBy, Carrying, Direction, IsAnt, IsColony, IsFood, MeshRef, Move, Position, RandomDirection, Sensors, Static, Targeting } from "./traits";
 
 // for demo purposes we store all systems in a single file
 
@@ -78,6 +78,12 @@ export const FindFood = ({ world }: { world: World }) => {
         // TODO: flip less aggressively
         const dir = entity.get(Direction);
         entity.set(Direction, { ...dir, current: dir?.current.multiplyScalar(-1) })
+
+        const sensors = entity.get(Sensors);
+        if (sensors) {
+          sensors.lookingFor = "home";
+          entity.set(Sensors, sensors);
+        }
         return;
       }
 

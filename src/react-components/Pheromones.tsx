@@ -1,38 +1,50 @@
-
-import { useEffect, useRef, useState } from "react";
-import { Entity } from "koota";
-import { useQuery, useTrait } from "koota/react";
-import { Group, Mesh, Vector3 } from "three";
-import { MeshRef, Pheromone, Position } from "../ecs/traits";
+import { useRef, useEffect } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { InstancedMesh, Object3D, DynamicDrawUsage } from 'three';
+import { useQuery } from 'koota/react';
+import { Pheromone, Position } from '../ecs/traits';
 
 export function Pheromones() {
-  const groupRef = useRef<Group>(null!);
-  const entities = useQuery(Pheromone, Position);
-
   return (
-    <group ref={groupRef}>
-      {entities.map((entity: Entity) => <PheromoneMesh entity={entity} key={entity}/>)}
-    </group>
-  )
+    <>
+      <PheromoneInstances type="food" color="red" />
+      <PheromoneInstances type="home" color="blue" />
+    </>
+  );
 }
 
-export function PheromoneMesh({ entity }: { entity: Entity }) {
-  const meshRef = useRef<Mesh>(null!);
-  const pheromone = useTrait(entity, Pheromone)
-  const position = useTrait(entity, Position)
+function PheromoneInstances({ type, color }: { type: string; color: string }) {
+  const meshRef = useRef<InstancedMesh>(null!);
+  const dummy = new Object3D();
+
+  const allPheromones = useQuery(Pheromone, Position);
+  const entities = allPheromones.filter(e => e.get(Pheromone)?.type === type);
 
   useEffect(() => {
-    entity.add(MeshRef({ ref: meshRef.current }))
+    meshRef.current.instanceMatrix.setUsage(DynamicDrawUsage);
+  }, []);
 
-    return () => {
-      entity.remove(MeshRef);
-    };
-  }, [entity]);
+  useFrame(() => {
+    entities.forEach((entity, i) => {
+      const pos = entity.get(Position);
+      if (!pos) return;
+
+      dummy.position.set(pos.x, 0, pos.z);
+      dummy.updateMatrix();
+      meshRef.current.setMatrixAt(i, dummy.matrix);
+    });
+
+    meshRef.current.count = entities.length;
+    meshRef.current.instanceMatrix.needsUpdate = true;
+  });
 
   return (
-    <mesh ref={meshRef} position={new Vector3(position?.x, position?.y,position?.z)}>
-      <dodecahedronGeometry args={[0.15]} />
-      <meshStandardMaterial color={pheromone?.type === "food" ? "red" : "blue"} /*transparent={true} */ />
-    </mesh>
-  )
+    <instancedMesh
+      ref={meshRef}
+      args={[undefined, undefined, entities.length]}
+    >
+      <dodecahedronGeometry args={[0.1]} />
+      <meshStandardMaterial color={color} /*transparent opacity={0.5}*/ />
+    </instancedMesh>
+  );
 }
