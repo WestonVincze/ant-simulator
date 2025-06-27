@@ -1,11 +1,57 @@
 import { World } from "koota";
 import RBush from "rbush";
+import { Object3D } from "three";
 
-import { Carrying, Direction, MeshRef, Pheromone, PheromoneSpawner, Position, Sensors, Static } from "../traits";
+import { Carrying, Direction, FoodPheromoneMeshRef, HomePheromoneMeshRef, Pheromone, PheromoneSpawner, Position, Sensors, Static } from "../traits";
 import { getSensorWorldPositions, rotateVector } from "../../utils";
 
 export const pheromoneMap = new Map();
 export const pheromoneTree = new RBush<{ entityId: number, type: string }>();
+
+const dummy = new Object3D();
+
+export const RenderPheromones = ({ world }: { world: World }) => {
+  const food = world.get(FoodPheromoneMeshRef);
+  const home = world.get(HomePheromoneMeshRef);
+
+  if (!food?.ref || !home?.ref) {
+    console.warn("InstanceMesh for food or home pheromones is missing.")
+    return;
+  }
+
+  const pheromones = world.query(Position, Pheromone);
+
+  if (pheromones.length === 0) return;
+
+  const foodPheromones = pheromones.filter(p => p.get(Pheromone)?.type === "food");
+
+  const homePheromones = pheromones.filter(p => p.get(Pheromone)?.type === "home")
+  
+  foodPheromones.forEach((entity, i) => {
+    const pos = entity.get(Position)!;
+
+    dummy.position.set(pos.x, 0.5, pos.z);
+    dummy.updateMatrix();
+
+    food?.ref?.setMatrixAt(i, dummy.matrix);
+  })
+
+  food.ref.count = foodPheromones.length;
+  food.ref.instanceMatrix.needsUpdate = true;
+
+  homePheromones.forEach((entity, i) => {
+    const pos = entity.get(Position)!;
+
+    dummy.position.set(pos.x, 0.5, pos.z);
+    dummy.updateMatrix();
+
+    home?.ref?.setMatrixAt(i, dummy.matrix);
+  })
+
+  home.ref.count = homePheromones.length;
+  home.ref.instanceMatrix.needsUpdate = true;
+
+}
 
 export const DetectPheromones = ({ world }: { world: World }) => {
   // count pheromones in each ant's sensor
@@ -102,7 +148,7 @@ export const DegradePheromones = ({ world, delta }: { world: World, delta: numbe
   let timeSinceLastUpdate = 0;
   */
 
-  const pheromones = world.query(Pheromone, MeshRef)
+  const pheromones = world.query(Pheromone)
 
   pheromones.updateEach(([ pheromone ], entity) => {
     /*
@@ -113,14 +159,14 @@ export const DegradePheromones = ({ world, delta }: { world: World, delta: numbe
     timeSinceLastUpdate = 0;
     */
 
-    pheromone.intensity -= 0.05 * delta;
+    pheromone.intensity -= .1 * delta;
     /* remove opacity for now
     const mesh = meshRef.ref;
     if (mesh && pheromone.intensity ) {
       const material = mesh.material as MeshStandardMaterial;
       material.opacity = Math.max(pheromone.intensity, 0);
     }
-      */
+    */
 
     if (pheromone.intensity <= 0) {
       pheromoneTree.remove(pheromoneMap.get(entity.id()));

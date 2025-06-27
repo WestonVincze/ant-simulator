@@ -1,5 +1,5 @@
 import { relation, trait } from "koota";
-import { Mesh, Vector3 } from "three";
+import { Mesh, Vector3, InstancedMesh } from "three";
 
 // for demo purposes we store all traits (ecs components) in a single file
 
@@ -58,3 +58,6 @@ export const PheromoneSpawner = trait({
 })
 
 export const Static = trait();
+
+export const FoodPheromoneMeshRef = trait<{ ref: InstancedMesh | null }>({ ref: null })
+export const HomePheromoneMeshRef = trait<{ ref: InstancedMesh | null }>({ ref: null })

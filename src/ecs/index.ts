@@ -4,7 +4,7 @@ import { Schedule } from "directed";
 import { DropOffFood, FindFood, HandleMove, HandleRotation, ScoutForFood, SyncCarriedFoodPosition, SyncPositionToThree } from "./systems";
 import { Direction, IsAnt, IsColony, IsFood, Move, Pheromone, PheromoneSpawner, Position, Sensors, Static } from "./traits";
 import { Vector3 } from "three";
-import { DegradePheromones, DetectPheromones, LeavePheromoneTrail, pheromoneMap, pheromoneTree } from "./systems/pheromones";
+import { DegradePheromones, DetectPheromones, LeavePheromoneTrail, pheromoneMap, pheromoneTree, RenderPheromones } from "./systems/pheromones";
 
 // create our world
 export const world = createWorld();
@@ -24,6 +24,7 @@ schedule.add(HandleRotation), { before: SyncPositionToThree };
 schedule.add(SyncPositionToThree, { after: LeavePheromoneTrail });
 schedule.add(SyncCarriedFoodPosition, { before: SyncPositionToThree});
 schedule.add(DegradePheromones, { before: SyncPositionToThree });
+schedule.add(RenderPheromones, { after: SyncPositionToThree });
 schedule.build();
 
 world.spawn(IsColony, Position(new Vector3(0, 2.5, 0)), Static);
