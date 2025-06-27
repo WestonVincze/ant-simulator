@@ -28,19 +28,19 @@ export default function App() {
         </div>
 
         <div className="flex gap-5 max-w-full flex-wrap">
-          <div onClick={spawnAnt} className={"btn btn-green"}>
+          <div onClick={() => spawnAnt()} className={"btn btn-green"}>
             + Ant
           </div>
 
-          <div onClick={removeAnt} className={"btn btn-red"}>
+          <div onClick={() => removeAnt()} className={"btn btn-red"}>
             - Ant
           </div>
 
-          <div onClick={spawnFood} className={"btn btn-purple"}>
+          <div onClick={() => spawnFood()} className={"btn btn-purple"}>
             + Food
           </div>
 
-          <div onClick={removeFood} className={"btn btn-red"}>
+          <div onClick={() => removeFood()} className={"btn btn-red"}>
             - Food
           </div>
         </div>

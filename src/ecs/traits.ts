@@ -29,8 +29,7 @@ export const Sensors = trait({
   lookingFor: "food",
   // position: () => new Vector3,
   value: 0,
-  action: "forward",
-  radius: 5
+  radius: 1
 })
 
 // each ant has 3 sensors
@@ -43,10 +42,10 @@ export const IsFood = trait();
 
 export const IsColony = trait();
 
-// separate pheromone trails for each ant
 type PheromoneSchema = {
   intensity: number;
   type: "home" | "food";
+  // stepCount? (we could track the number of steps or some measurement of distance/value for the pheromone node)
 }
 
 export const Pheromone = trait<PheromoneSchema>({

@@ -13,7 +13,6 @@ const Added = createAdded();
 export const SyncPositionToThree = ({ world }: { world: World }) => {
   // static entities 
   world.query(Added(Position, MeshRef, Static)).updateEach(([ pos, { ref: mesh }]) => {
-    console.log("static asset added")
     mesh.position.copy(pos);
   })
 
@@ -23,6 +22,10 @@ export const SyncPositionToThree = ({ world }: { world: World }) => {
     const target = pos.clone().add(dir.current);
     mesh.lookAt(target);
   });
+
+  world.query(Position, MeshRef, Not(Static, Direction)).updateEach(( [pos, { ref: mesh } ]) => {
+    mesh.position.copy(pos);
+  })
 }
 
 const getDistance2D = (pos1: { x: number, z: number }, pos2: { x: number, z: number }): number => {
@@ -33,6 +36,7 @@ const getDistance2D = (pos1: { x: number, z: number }, pos2: { x: number, z: num
 
 export const FindFood = ({ world }: { world: World }) => {
   const FOOD_DETECTION_RANGE = 10;
+  const FOOD_PICKUP_RANGE = 3;
 
   const food = world.query(Position, IsFood, Not(CarriedBy("*")));
   const colony = world.queryFirst(Position, IsColony);
@@ -64,13 +68,16 @@ export const FindFood = ({ world }: { world: World }) => {
       if (distance > FOOD_DETECTION_RANGE) continue;
 
       // if a food item is in range, pick it up and kill the loop
-      if (distance < 5) {
-        console.log("PICK IT UP");
+      if (distance < FOOD_PICKUP_RANGE) {
 
         // TODO: does it make sense to use both held and held by?
         entity.add(Carrying(f));
         f.add(CarriedBy(entity));
         entity.add(Targeting(colony));
+
+        // TODO: flip less aggressively
+        const dir = entity.get(Direction);
+        entity.set(Direction, { ...dir, current: dir?.current.multiplyScalar(-1) })
         return;
       }
 
@@ -106,6 +113,10 @@ export const DropOffFood = ({ world }: {world: World }) => {
       const food = entity.targetFor(Carrying);
       food?.remove(CarriedBy("*"));
       food?.remove(IsFood);
+
+      // TODO: flip less aggressively
+      const dir = entity.get(Direction);
+      entity.set(Direction, { ...dir, current: dir?.current.multiplyScalar(-1) })
     }
   })
 }
@@ -124,11 +135,10 @@ export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta:
 
     // TODO: compensate for rotation of ant as well
     pos.x = antPosition.x;
-    pos.y = antPosition.y;
+    pos.y = antPosition.y + 0.5;
     pos.z = antPosition.z;
   });
 }
-
 
 // ants move "randomly" when they don't have a target
 export const ScoutForFood = ({ world, delta }: { world: World, delta: number }) => {
@@ -170,7 +180,7 @@ export const ScoutForFood = ({ world, delta }: { world: World, delta: number }) 
 
     entity.set(RandomDirection, randomDirection);
 
-    dir.desired.copy(randomDirection.direction);
+    // dir.desired.copy(randomDirection.direction);
 
 
     /*
@@ -184,8 +194,15 @@ export const ScoutForFood = ({ world, delta }: { world: World, delta: number }) 
 }
 
 export const HandleRotation = ({ world, delta }: { world: World, delta: number }) => {
-  world.query(Direction).updateEach(([ dir ]) => {
-    dir.current.lerp(dir.desired, 0.01).normalize();
+  world.query(Direction).updateEach(([ dir ], entity) => {
+    let desired = dir.desired.clone();
+    const randomDir = entity.get(RandomDirection);
+
+    if (randomDir?.direction) {
+      desired = desired.add(randomDir.direction.clone().multiplyScalar(0.3))
+    }
+
+    dir.current.lerp(desired, 2 * delta).normalize();
   })
 }
 
