@@ -1,12 +1,14 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plane, Raycaster, Vector2, Vector3 } from "three";
 import { useThree } from "@react-three/fiber";
 import { useActions } from "koota/react";
 import { exampleActions } from "../ecs";
 
-export const PheromoneClickSpawner = () => {
+export const ClickSpawner = () => {
+  const [spawnObject, setSpawnObject] = useState("food");
+
   const { camera, gl, size } = useThree();
-  const { spawnPheromone } = useActions(exampleActions);
+  const { spawnPheromone, spawnFood, spawnAnt } = useActions(exampleActions);
 
   const handleClick = useCallback((event: MouseEvent) => {
     // Convert mouse position to NDC (-1 to 1)
@@ -24,16 +26,31 @@ export const PheromoneClickSpawner = () => {
     const intersection = new Vector3();
 
     if (raycaster.ray.intersectPlane(groundPlane, intersection)) {
-      spawnPheromone(intersection.x, 0, intersection.z);
+      if (spawnObject === "food") {
+        spawnFood(intersection.x, 0.5, intersection.z)
+      } else if (spawnObject === "pheromone") {
+        spawnPheromone(intersection.x, 0, intersection.z);
+      }
     }
-  }, [camera, size]);
+  }, [camera, size, spawnObject]);
 
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === "f") {
+      setSpawnObject("food");
+    } else if (event.key === "p") {
+      setSpawnObject("pheromone")
+    }
+  }, []);
 
   useEffect(() => {
     const canvas = gl.domElement;
     canvas.addEventListener('click', handleClick);
-    return () => canvas.removeEventListener('click', handleClick);
-  }, [gl, handleClick]);
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      canvas.removeEventListener('click', handleClick);
+      document.removeEventListener('keydown', handleKeyDown);
+    }
+  }, [gl, handleClick, handleKeyDown]);
 
   return null;
 }

@@ -2,9 +2,9 @@ import { createWorld, World, createActions } from "koota";
 import { Schedule } from "directed";
 
 import { DropOffFood, FindFood, HandleMove, HandleRotation, ScoutForFood, SyncCarriedFoodPosition, SyncPositionToThree } from "./systems";
-import { Direction, IsAnt, IsColony, IsFood, Move, Pheromone, PheromoneSpawner, Position, Static } from "./traits";
+import { Direction, IsAnt, IsColony, IsFood, Move, Pheromone, PheromoneSpawner, Position, Sensors, Static } from "./traits";
 import { Vector3 } from "three";
-import { DegradePheromones, DetectPheromones, LeavePheromoneTrail } from "./systems/pheromones";
+import { DegradePheromones, DetectPheromones, LeavePheromoneTrail, pheromoneMap, pheromoneTree } from "./systems/pheromones";
 
 // create our world
 export const world = createWorld();
@@ -34,14 +34,23 @@ world.spawn(IsColony, Position(new Vector3(0, 2.5, 0)), Static);
 
 export const exampleActions = createActions((world: World) => ({
   spawnAnt: () => {
-    const x = Math.random() * 70 - 35;
-    const z = Math.random() * 70 - 35;
+   const direction = new Vector3(Math.random() * 2 - 1, 0, Math.random() * 2 - 1)
     world.spawn(
       IsAnt,
-      Position(new Vector3(x, 0, z)),
-      Direction(),
+      Position(new Vector3(0, 0, 0)),
+      Direction({
+        current: direction.clone(),
+        desired: new Vector3(0, 0, 1),
+      }),
       PheromoneSpawner({ timeSinceLastSpawn: 0 }),
-      Move(),
+      Move({ speed: 3 }),
+      Sensors({
+        frontOffset: new Vector3(0, 0, 5),
+        leftOffset: new Vector3(4, 0, 3),
+        rightOffset: new Vector3(-4, 0, 3),
+        radius: 1.75,
+        lookingFor: "food"
+      })
     )
   },
 
@@ -49,10 +58,8 @@ export const exampleActions = createActions((world: World) => ({
     world.queryFirst(IsAnt)?.destroy();
   },
 
-  spawnFood: () => {
-    const x = Math.random() * 100 - 50;
-    const z = Math.random() * 100 - 50;
-    world.spawn(IsFood, Position(new Vector3(x, 0.5, z)));
+  spawnFood: (x: number = Math.random() * 100 - 50, y: number = 0.5, z: number = Math.random() * 100 - 50) => {
+    world.spawn(IsFood, Position(new Vector3(x, y, z)));
   },
 
   removeFood: () => {
@@ -60,6 +67,17 @@ export const exampleActions = createActions((world: World) => ({
   },
 
   spawnPheromone: (x: number, y: number, z: number) => {
-    world.spawn(Pheromone({ intensity: 1, type: "food" }), Position(new Vector3(x, y, z)), Static)
+    const pheromoneEntity = world.spawn(Pheromone({ intensity: 1, type: "food" }), Position(new Vector3(x, y, z)), Static)
+    const pheromone = {
+      minX: x,
+      minY: z,
+      maxX: x,
+      maxY: z,
+      entityId: pheromoneEntity.id(),
+      type: "food",
+    }
+
+    pheromoneMap.set(pheromoneEntity.id(), pheromone);
+    pheromoneTree.insert(pheromone);
   }
 }));

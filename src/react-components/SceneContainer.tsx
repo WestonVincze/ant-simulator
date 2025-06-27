@@ -6,10 +6,12 @@ import { schedule } from "../ecs";
 import { FoodSpawner } from "./FoodSpawner";
 import { Colony } from "./Colony";
 import { Pheromones } from "./Pheromones";
-import { PheromoneClickSpawner } from "./PheromoneClickSpawner";
+import { ClickSpawner } from "./ClickSpawner";
+import { SensorGizmos } from "./SensorGizmos";
 
 export function SceneContainer() {
   const world = useWorld();
+  const debugMode = false;
 
   useFrame((_state, delta) => {
     // this is how we connect our ecs systems to r3f
@@ -25,7 +27,8 @@ export function SceneContainer() {
       <Background />
       <OrbitControls dampingFactor={1} />
       <PerspectiveCamera makeDefault position={[40, 20, 20]} />
-      <PheromoneClickSpawner />
+      <ClickSpawner />
+      {debugMode && <SensorGizmos />}
     </>
   )
 }
