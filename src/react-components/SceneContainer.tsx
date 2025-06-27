@@ -5,16 +5,11 @@ import { AntSpawner } from "./AntSpawner";
 import { schedule } from "../ecs";
 import { FoodSpawner } from "./FoodSpawner";
 import { Colony } from "./Colony";
-import { useEffect } from "react";
-import { IsColony, Position } from "../ecs/traits";
 import { Pheromones } from "./Pheromones";
+import { PheromoneClickSpawner } from "./PheromoneClickSpawner";
 
 export function SceneContainer() {
   const world = useWorld();
-
-  useEffect(() => {
-    world.spawn(IsColony, Position({ x: 0, y: 2.5, z: 0 }));
-  }, [])
 
   useFrame((_state, delta) => {
     // this is how we connect our ecs systems to r3f
@@ -30,6 +25,7 @@ export function SceneContainer() {
       <Background />
       <OrbitControls dampingFactor={1} />
       <PerspectiveCamera makeDefault position={[40, 20, 20]} />
+      <PheromoneClickSpawner />
     </>
   )
 }
