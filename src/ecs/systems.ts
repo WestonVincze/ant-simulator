@@ -6,6 +6,7 @@ import { CarriedBy, Carrying, IsAnt, IsColony, IsFood, MeshRef, Pheromone, Phero
 
 // for demo purposes we store all systems in a single file
 
+const pheromoneMap = new Map();
 const pheromoneTree = new RBush();
 
 /**
@@ -164,7 +165,8 @@ export const DetectPheromones = ({ world }: { world: World }) => {
     /*
     if (bestDirection) {
       const targetPos = new Vector3(bestDirection[0], 0, bestDirection[1]);
-      entity.add(Targeting(targetPos));
+      const t = world.spawn(Position(targetPos));
+      entity.add(Targeting(t));
     }
     */
   })
@@ -179,32 +181,39 @@ export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: num
     if (spawner.timeSinceLastSpawn >= PHEROMONE_DROP_INTERVAL) {
       const type = entity.has(Carrying("*")) ? "food" : "return";
       world.spawn(Pheromone({ intensity: 1, type }), Position(pos), Static);
-      pheromoneTree.insert({
+      const pheromone = {
         minX: pos.x,
         minY: pos.z,
         maxX: pos.x,
         maxY: pos.z,
         entityId: entity.id,
         type
-      })
+      }
+      pheromoneMap.set(entity.id, pheromone);
+      pheromoneTree.insert(pheromone)
       spawner.timeSinceLastSpawn = 0;
     }
   });
 }
 
 export const DegradePheromones = ({ world, delta }: { world: World, delta: number }) => {
-  const UPDATE_INTERVAL = 5;
+  /*
+  const UPDATE_INTERVAL = 1;
 
   let timeSinceLastUpdate = 0;
+  */
 
   const pheromones = world.query(Pheromone, MeshRef)
 
-  pheromones.updateEach(([ pheromone, meshRef ], entity) => {
+  console.log(pheromoneTree);
+  pheromones.updateEach(([ pheromone ], entity) => {
+    /*
     timeSinceLastUpdate += delta;
 
     if (timeSinceLastUpdate < UPDATE_INTERVAL) return;
 
     timeSinceLastUpdate = 0;
+    */
 
     pheromone.intensity -= 0.5 * delta;
     /* remove opacity for now
@@ -217,6 +226,9 @@ export const DegradePheromones = ({ world, delta }: { world: World, delta: numbe
 
     if (pheromone.intensity <= 0) {
       entity?.destroy();
+
+      pheromoneTree.remove(pheromoneMap.get(entity.id));
+      pheromoneMap.delete(entity.id);
     }
   });
 }
