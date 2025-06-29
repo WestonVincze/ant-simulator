@@ -76,6 +76,7 @@ export const exampleActions = createActions((world: World) => ({
       maxY: z,
       entityId: pheromoneEntity.id(),
       type: "food",
+      stepsFromGoal: 0 // for now
     }
 
     pheromoneMap.set(pheromoneEntity.id(), pheromone);

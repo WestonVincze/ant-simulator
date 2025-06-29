@@ -6,7 +6,7 @@ import { Carrying, Direction, FoodPheromoneMeshRef, HomePheromoneMeshRef, Pherom
 import { getSensorWorldPositions, rotateVector } from "../../utils";
 
 export const pheromoneMap = new Map();
-export const pheromoneTree = new RBush<{ entityId: number, type: string }>();
+export const pheromoneTree = new RBush<{ entityId: number, type: string, stepsFromGoal: number }>();
 
 const dummy = new Object3D();
 
@@ -63,32 +63,56 @@ export const DetectPheromones = ({ world }: { world: World }) => {
       right: sensors.rightOffset
     })
 
+    let lowestStepCount = Infinity;
+    let bestDirection = "forward";
+
     // count pheromones in each sensor
     const frontPheromones = pheromoneTree.search({
       minX: sensorPos.front.x - sensors.radius,
       minY: sensorPos.front.z - sensors.radius,
       maxX: sensorPos.front.x + sensors.radius,
       maxY: sensorPos.front.z + sensors.radius 
-    }).filter(item => item.type === sensors.lookingFor);
+    })
+      .filter(item => item.type === sensors.lookingFor)
+      .forEach(item => {
+        if (item.stepsFromGoal <= lowestStepCount) {
+          lowestStepCount = item.stepsFromGoal;
+          bestDirection = "forward";
+        }
+      })
 
     const leftPheromones = pheromoneTree.search({
       minX: sensorPos.left.x - sensors.radius,
       minY: sensorPos.left.z - sensors.radius,
       maxX: sensorPos.left.x + sensors.radius,
       maxY: sensorPos.left.z + sensors.radius 
-    }).filter(item => item.type === sensors.lookingFor);
-
+    })
+      .filter(item => item.type === sensors.lookingFor)
+      .forEach(item => {
+        if (item.stepsFromGoal <= lowestStepCount) {
+          lowestStepCount = item.stepsFromGoal;
+          bestDirection = "left";
+        }
+      })
 
     const rightPheromones = pheromoneTree.search({
       minX: sensorPos.right.x - sensors.radius,
       minY: sensorPos.right.z - sensors.radius,
       maxX: sensorPos.right.x + sensors.radius,
       maxY: sensorPos.right.z + sensors.radius 
-    }).filter(item => item.type === sensors.lookingFor);
+    })
+      .filter(item => item.type === sensors.lookingFor)
+      .forEach(item => {
+        if (item.stepsFromGoal <= lowestStepCount) {
+          lowestStepCount = item.stepsFromGoal;
+          bestDirection = "right";
+        }
+      })
 
     // default to forward
     let desired = dir.current.clone();
 
+    /*
     if (
       leftPheromones.length > frontPheromones.length &&
       leftPheromones.length > rightPheromones.length
@@ -100,6 +124,13 @@ export const DetectPheromones = ({ world }: { world: World }) => {
       rightPheromones.length > frontPheromones.length
     ) {
       // turn right
+      desired = rotateVector(dir.current, -Math.PI / 4);
+    }
+    */
+
+    if (bestDirection === "left") {
+      desired = rotateVector(dir.current, +Math.PI / 4);
+    } else if (bestDirection === "right") {
       desired = rotateVector(dir.current, -Math.PI / 4);
     }
 
@@ -121,18 +152,30 @@ export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: num
   const PHEROMONE_DROP_INTERVAL = 0.5;
 
   world.query(PheromoneSpawner, Position).updateEach(([ spawner, pos ], entity) => {
-    spawner.timeSinceLastSpawn += delta
+    spawner.timeSinceLastSpawn += delta;
 
     if (spawner.timeSinceLastSpawn >= PHEROMONE_DROP_INTERVAL) {
+      // TODO: reset step count when changing pheromone type
+      spawner.stepCount += 1;
+      // TODO: move type to pheromoneSpawner prop
       const type = entity.has(Carrying("*")) ? "food" : "home";
-      const pheromoneEntity = world.spawn(Pheromone({ intensity: 1, type }), Position(pos.clone()), Static);
+      const pheromoneEntity = world.spawn(
+        Pheromone({
+          intensity: 1,
+          stepsFromGoal: spawner.stepCount,
+          type
+        }),
+        Position(pos.clone()),
+        Static
+      );
       const pheromone = {
         minX: pos.x,
         minY: pos.z,
         maxX: pos.x,
         maxY: pos.z,
         entityId: pheromoneEntity.id(),
-        type
+        type,
+        stepsFromGoal: spawner.stepCount
       }
       pheromoneMap.set(pheromoneEntity.id(), pheromone);
       pheromoneTree.insert(pheromone)
@@ -159,7 +202,7 @@ export const DegradePheromones = ({ world, delta }: { world: World, delta: numbe
     timeSinceLastUpdate = 0;
     */
 
-    pheromone.intensity -= .1 * delta;
+    pheromone.intensity -= .01 * delta;
     /* remove opacity for now
     const mesh = meshRef.ref;
     if (mesh && pheromone.intensity ) {

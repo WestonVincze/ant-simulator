@@ -45,16 +45,20 @@ export const IsColony = trait();
 type PheromoneSchema = {
   intensity: number;
   type: "home" | "food";
+  stepsFromGoal: number;
   // stepCount? (we could track the number of steps or some measurement of distance/value for the pheromone node)
 }
 
 export const Pheromone = trait<PheromoneSchema>({
-  intensity: 0,
-  type: "home"
+  intensity: 1,
+  type: "home",
+  stepsFromGoal: 0,
 });
 
 export const PheromoneSpawner = trait({ 
-  timeSinceLastSpawn: 0
+  type: "home",
+  timeSinceLastSpawn: 0,
+  stepCount: 0,
 })
 
 export const Static = trait();

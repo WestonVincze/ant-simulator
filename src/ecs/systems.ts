@@ -1,7 +1,7 @@
 import { createAdded, Not, World } from "koota";
 import { Quaternion, Vector3 } from "three";
 
-import { CarriedBy, Carrying, Direction, IsAnt, IsColony, IsFood, MeshRef, Move, Position, RandomDirection, Sensors, Static, Targeting } from "./traits";
+import { CarriedBy, Carrying, Direction, IsAnt, IsColony, IsFood, MeshRef, Move, PheromoneSpawner, Position, RandomDirection, Sensors, Static, Targeting } from "./traits";
 
 // for demo purposes we store all systems in a single file
 
@@ -84,6 +84,10 @@ export const FindFood = ({ world }: { world: World }) => {
           sensors.lookingFor = "home";
           entity.set(Sensors, sensors);
         }
+        const pheromoneSpawner = entity.get(PheromoneSpawner);
+        if (pheromoneSpawner) {
+          pheromoneSpawner.stepCount = 0;
+        }
         return;
       }
 
@@ -113,12 +117,23 @@ export const DropOffFood = ({ world }: {world: World }) => {
 
     const distance = getDistance2D({ x: pos.x, z: pos.z }, { x: targetPos.x, z: targetPos.z })
 
-    if (distance < 3) {
+    if (distance < 5) {
       entity.remove(Targeting("*"));
       entity.remove(Carrying("*"));
       const food = entity.targetFor(Carrying);
       food?.remove(CarriedBy("*"));
       food?.remove(IsFood);
+
+      const sensors = entity.get(Sensors);
+      if (sensors) {
+        sensors.lookingFor = "food";
+        entity.set(Sensors, sensors);
+      }
+
+      const pheromoneSpawner = entity.get(PheromoneSpawner);
+      if (pheromoneSpawner) {
+        pheromoneSpawner.stepCount = 0;
+      }
 
       // TODO: flip less aggressively
       const dir = entity.get(Direction);
