@@ -1,10 +1,10 @@
 import { createWorld, World, createActions } from "koota";
 import { Schedule } from "directed";
 
-import { DropOffFood, FindFood, HandleMove, HandleRotation, ScoutForFood, SyncCarriedFoodPosition, SyncPositionToThree } from "./systems";
+import { DropOffFood, FaceAntsTowardTarget, FindFood, HandleMove, HandleRotation, ScoutForFood, SyncCarriedFoodPosition, SyncFoodManager, SyncPositionToThree } from "./systems";
 import { Direction, IsAnt, IsColony, IsFood, Move, Pheromone, PheromoneSpawner, Position, Sensors, Static } from "./traits";
 import { Vector3 } from "three";
-import { DegradePheromones, DetectPheromones, LeavePheromoneTrail, pheromoneMap, pheromoneTree, RenderPheromones } from "./systems/pheromones";
+import { DegradePheromones, DetectPheromones, LeavePheromoneTrail, RenderPheromones } from "./systems/pheromones";
 
 // create our world
 export const world = createWorld();
@@ -13,11 +13,12 @@ export const world = createWorld();
 export const schedule = new Schedule<{ world: World, delta: number }>();
 
 // import all ecs systems and build the schedule
+schedule.add(SyncFoodManager, { before: DetectPheromones });
 schedule.add(DetectPheromones, { before: FindFood });
 schedule.add(FindFood, { before: HandleMove });
-schedule.add(DropOffFood, { after: FindFood });
 schedule.add(ScoutForFood, { after: FindFood })
-// schedule.add(MoveAntsToTarget);
+schedule.add(FaceAntsTowardTarget, { after: FindFood });
+schedule.add(DropOffFood, { after: FaceAntsTowardTarget });
 schedule.add(HandleMove);
 schedule.add(LeavePheromoneTrail, { after: HandleMove })
 schedule.add(HandleRotation), { before: SyncPositionToThree };
@@ -79,7 +80,7 @@ export const exampleActions = createActions((world: World) => ({
       stepsFromGoal: 0 // for now
     }
 
-    pheromoneMap.set(pheromoneEntity.id(), pheromone);
-    pheromoneTree.insert(pheromone);
+    // pheromoneMap.set(pheromoneEntity.id(), pheromone);
+    // pheromoneTree.insert(pheromone);
   }
 }));

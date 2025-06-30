@@ -1,12 +1,11 @@
-import { World } from "koota";
-import RBush from "rbush";
+import { Not, World } from "koota";
 import { Object3D } from "three";
 
-import { Carrying, Direction, FoodPheromoneMeshRef, HomePheromoneMeshRef, Pheromone, PheromoneSpawner, Position, Sensors, Static } from "../traits";
+import { Carrying, Direction, FoodPheromoneMeshRef, HomePheromoneMeshRef, Pheromone, PheromoneSpawner, Position, Sensors, Static, Targeting } from "../traits";
 import { getSensorWorldPositions, rotateVector } from "../../utils";
+import { SpatialManager } from "../../spatialTrees/SpatialManager";
 
-export const pheromoneMap = new Map();
-export const pheromoneTree = new RBush<{ entityId: number, type: string, stepsFromGoal: number }>();
+const pheromoneManager = new SpatialManager<{ type: string, stepsFromGoal: number}>();
 
 const dummy = new Object3D();
 
@@ -55,7 +54,7 @@ export const RenderPheromones = ({ world }: { world: World }) => {
 
 export const DetectPheromones = ({ world }: { world: World }) => {
   // count pheromones in each ant's sensor
-  world.query(Position, Direction, Sensors).updateEach(([ pos, dir, sensors ]) => {
+  world.query(Position, Direction, Sensors, Not(Targeting("*"))).updateEach(([ pos, dir, sensors ]) => {
     // calculate position of sensors
     const sensorPos = getSensorWorldPositions(pos, dir.current, {
       front: sensors.frontOffset,
@@ -67,44 +66,29 @@ export const DetectPheromones = ({ world }: { world: World }) => {
     let bestDirection = "forward";
 
     // count pheromones in each sensor
-    const frontPheromones = pheromoneTree.search({
-      minX: sensorPos.front.x - sensors.radius,
-      minY: sensorPos.front.z - sensors.radius,
-      maxX: sensorPos.front.x + sensors.radius,
-      maxY: sensorPos.front.z + sensors.radius 
-    })
-      .filter(item => item.type === sensors.lookingFor)
+    pheromoneManager.query(sensorPos.front, sensors.radius)
+      .filter(item => item.data.type === sensors.lookingFor)
       .forEach(item => {
-        if (item.stepsFromGoal <= lowestStepCount) {
-          lowestStepCount = item.stepsFromGoal;
+        if (item.data.stepsFromGoal <= lowestStepCount) {
+          lowestStepCount = item.data.stepsFromGoal;
           bestDirection = "forward";
         }
       })
 
-    const leftPheromones = pheromoneTree.search({
-      minX: sensorPos.left.x - sensors.radius,
-      minY: sensorPos.left.z - sensors.radius,
-      maxX: sensorPos.left.x + sensors.radius,
-      maxY: sensorPos.left.z + sensors.radius 
-    })
-      .filter(item => item.type === sensors.lookingFor)
+    pheromoneManager.query(sensorPos.left, sensors.radius)
+      .filter(item => item.data.type === sensors.lookingFor)
       .forEach(item => {
-        if (item.stepsFromGoal <= lowestStepCount) {
-          lowestStepCount = item.stepsFromGoal;
+        if (item.data.stepsFromGoal <= lowestStepCount) {
+          lowestStepCount = item.data.stepsFromGoal;
           bestDirection = "left";
         }
       })
 
-    const rightPheromones = pheromoneTree.search({
-      minX: sensorPos.right.x - sensors.radius,
-      minY: sensorPos.right.z - sensors.radius,
-      maxX: sensorPos.right.x + sensors.radius,
-      maxY: sensorPos.right.z + sensors.radius 
-    })
-      .filter(item => item.type === sensors.lookingFor)
+    pheromoneManager.query(sensorPos.right, sensors.radius)
+      .filter(item => item.data.type === sensors.lookingFor)
       .forEach(item => {
-        if (item.stepsFromGoal <= lowestStepCount) {
-          lowestStepCount = item.stepsFromGoal;
+        if (item.data.stepsFromGoal <= lowestStepCount) {
+          lowestStepCount = item.data.stepsFromGoal;
           bestDirection = "right";
         }
       })
@@ -168,17 +152,13 @@ export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: num
         Position(pos.clone()),
         Static
       );
-      const pheromone = {
-        minX: pos.x,
-        minY: pos.z,
-        maxX: pos.x,
-        maxY: pos.z,
-        entityId: pheromoneEntity.id(),
-        type,
-        stepsFromGoal: spawner.stepCount
-      }
-      pheromoneMap.set(pheromoneEntity.id(), pheromone);
-      pheromoneTree.insert(pheromone)
+
+      pheromoneManager.addItem(
+        pheromoneEntity,
+        pos,
+        { type, stepsFromGoal: spawner.stepCount }
+      )
+
       spawner.timeSinceLastSpawn = 0;
     }
   });
@@ -212,8 +192,7 @@ export const DegradePheromones = ({ world, delta }: { world: World, delta: numbe
     */
 
     if (pheromone.intensity <= 0) {
-      pheromoneTree.remove(pheromoneMap.get(entity.id()));
-      pheromoneMap.delete(entity.id());
+      pheromoneManager.removeItem(entity.id());
 
       entity?.destroy();
     }

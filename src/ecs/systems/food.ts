@@ -1,48 +1,59 @@
-import { Not, World } from "koota";
+import { createAdded, Not, World } from "koota";
 import { CarriedBy, Carrying, Direction, IsAnt, IsColony, IsFood, MeshRef, PheromoneSpawner, Position, RandomDirection, Sensors, Targeting } from "../traits";
 import { Quaternion, Vector3 } from "three";
 import { getDistance2D } from "../../utils";
+import { SpatialManager } from "../../spatialTrees/SpatialManager";
+
+const foodManager = new SpatialManager<{ value: number }>();
+
+const Added = createAdded();
+
+export const SyncFoodManager = ({ world }: { world: World }) => {
+  world.query(Added(IsFood, Position)).forEach(entity => {
+    const pos = entity.get(Position);
+    if (!pos) return;
+
+    foodManager.addItem(entity, pos, { value: 1 })
+    // console.log(foodManager.queryItem(new Vector3, 1000));
+  })
+
+  // remove food from foodManager once it is carried by an ant
+  world.query(Added(CarriedBy("*"))).forEach(entity => {
+    foodManager.removeItem(entity.id());
+    // console.log(foodManager.queryItem(new Vector3, 1000));
+  })
+}
 
 export const FindFood = ({ world }: { world: World }) => {
   const FOOD_DETECTION_RANGE = 10;
   const FOOD_PICKUP_RANGE = 3;
 
-  const food = world.query(Position, IsFood, Not(CarriedBy("*")));
   const colony = world.queryFirst(Position, IsColony);
 
-  if (food.length === 0 || !colony) return;
+  if (!colony) return;
 
   // use in place of world.query().forEach() for performance intensive operations
   for (const entity of world.query(Position, IsAnt, Not(Carrying("*")))) {
     const pos = entity.get(Position);
-    // TODO: is this how we should interact with traits when we need a reference to the entity as well? It shouldn't be possible for pos to not exist.
     if (!pos) return;
 
     let closestFood = null;
     let closestDistance = Infinity;
 
-    const target = entity.targetFor(Targeting);
-    const targetCarrier = target?.targetFor(CarriedBy);
-
-    if (targetCarrier && targetCarrier.id !== entity.id) {
-      entity.remove(Targeting("*"));
-    }
-
-    for (const f of food) {
-      const foodPos = f.get(Position);
+    const foodInRange = foodManager.query(pos, FOOD_DETECTION_RANGE);
+    for (const food of foodInRange) {
+      const foodPos = food.entity.get(Position);
       if (!foodPos) continue;
 
       const distance = getDistance2D({ x: pos.x, z: pos.z }, { x: foodPos.x, z: foodPos.z })
-
-      if (distance > FOOD_DETECTION_RANGE) continue;
 
       // if a food item is in range, pick it up and kill the loop
       if (distance < FOOD_PICKUP_RANGE) {
 
         // TODO: does it make sense to use both held and held by?
-        entity.add(Carrying(f));
-        f.add(CarriedBy(entity));
-        entity.add(Targeting(colony));
+        entity.add(Carrying(food.entity));
+        food.entity.add(CarriedBy(entity));
+        entity.remove(Targeting("*"));
 
         // TODO: flip less aggressively
         const dir = entity.get(Direction);
@@ -62,24 +73,25 @@ export const FindFood = ({ world }: { world: World }) => {
 
       if (distance < closestDistance) {
         closestDistance = distance;
-        closestFood = f;
+        closestFood = food.entity;
       }
     }
 
-    if (closestFood) {
+    // if closest food exists and is not already targeted
+    if (closestFood && world.query(Targeting(closestFood)).length === 0) {
       entity.add(Targeting(closestFood))
     }
   }
 }
 
 export const DropOffFood = ({ world }: {world: World }) => {
+  const COLONY_DETECTION_RANGE = 20;
   const colony = world.queryFirst(Position, IsColony);
 
   if (!colony) return;
 
-  world.query(Position, IsAnt, Carrying("*"), Targeting(colony)).forEach(entity => {
-    const target = entity.targetFor(Targeting);
-    const targetPos = target?.get(Position);
+  world.query(Position, IsAnt, Carrying("*")).forEach(entity => {
+    const targetPos = colony.get(Position);
     const pos = entity.get(Position);
 
     if (!targetPos || !pos) return;
@@ -107,6 +119,11 @@ export const DropOffFood = ({ world }: {world: World }) => {
       // TODO: flip less aggressively
       const dir = entity.get(Direction);
       entity.set(Direction, { ...dir, current: dir?.current.multiplyScalar(-1) })
+      return;
+    }
+
+    if (!entity.has(Targeting(colony)) && distance < COLONY_DETECTION_RANGE) {
+      entity.add(Targeting(colony));
     }
   })
 }
@@ -115,13 +132,15 @@ export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta:
   world.query(Position, CarriedBy("*"), IsFood).updateEach(([ pos ], entity) => {
     const ant = entity.targetFor(CarriedBy);
     const antPosition = ant?.get(Position);
+    const antDirection = ant?.get(Direction);
 
-    if (!antPosition) return;
+    if (!antPosition || !antDirection?.current) return;
 
-    // TODO: compensate for rotation of ant as well
-    pos.x = antPosition.x;
+    const offset = antDirection.current.clone().multiplyScalar(1.5);
+
+    pos.x = antPosition.x + offset.x;
     pos.y = antPosition.y + 0.5;
-    pos.z = antPosition.z;
+    pos.z = antPosition.z + offset.z;
   });
 }
 
@@ -164,16 +183,5 @@ export const ScoutForFood = ({ world, delta }: { world: World, delta: number }) 
     }
 
     entity.set(RandomDirection, randomDirection);
-
-    // dir.desired.copy(randomDirection.direction);
-
-
-    /*
-    const quaternion = new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), randomDirection.direction);
-    meshRef.ref.quaternion.slerp(quaternion, ROTATION_SPEED * delta);
-
-    pos.x += randomDirection.direction.x * SCOUT_SPEED * delta;
-    pos.z += randomDirection.direction.z * SCOUT_SPEED * delta;
-    */
   })
 }

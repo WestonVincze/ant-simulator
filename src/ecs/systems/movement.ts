@@ -1,7 +1,7 @@
 import { World } from "koota";
-import { Quaternion, Vector3 } from "three";
+import { Vector3 } from "three";
 
-import { Direction, IsAnt, MeshRef, Move, Position, RandomDirection, Targeting } from "../traits";
+import { Direction, IsAnt, Move, Position, RandomDirection, Targeting } from "../traits";
 import { calculateDirection } from "../../utils";
 
 // for demo purposes we store all systems in a single file
@@ -31,12 +31,8 @@ export const HandleRotation = ({ world, delta }: { world: World, delta: number }
   })
 }
 
-export const MoveAntsToTarget = ({ world, delta }: { world: World, delta: number }) => {
-  const ROTATION_SPEED = 2;
-  world.query(Position, MeshRef, Targeting('*'), IsAnt).updateEach(([ pos, meshRef ], entity) => {
-    const mesh = meshRef.ref;
-
-    if (!mesh) return;
+export const FaceAntsTowardTarget = ({ world }: { world: World }) => {
+  world.query(Position, Direction, Targeting('*'), IsAnt).updateEach(([ pos, dir ], entity) => {
 
     const target = entity.targetFor(Targeting);
     const targetPos = target?.get(Position);
@@ -46,15 +42,6 @@ export const MoveAntsToTarget = ({ world, delta }: { world: World, delta: number
     // Calculate direction vector from rotation
     const direction = calculateDirection(new Vector3(pos.x, 0, pos.z), new Vector3(targetPos.x, 0, targetPos.z));
 
-    const quaternion = new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), direction)
-    // mesh.quaternion.copy(quaternion);
-    mesh.quaternion.slerp(quaternion, ROTATION_SPEED * delta);
-    // direction.applyQuaternion(mesh.quaternion); // Apply rotation to get world direction
-
-    // Update position to move in the direction of the rotation
-    const speed = 4;
-    pos.x += direction.x * speed * delta;
-    pos.y += direction.y * speed * delta;
-    pos.z += direction.z * speed * delta;
+    dir.desired = direction;
   });
 }
