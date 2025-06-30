@@ -1,5 +1,16 @@
 import { Quaternion, Vector3 } from "three";
 
+export const getDistance2D = (pos1: { x: number, z: number }, pos2: { x: number, z: number }): number => {
+  const dx = pos1.x - pos2.x;
+  const dz = pos1.z - pos2.z;
+  return Math.sqrt(dx * dx + dz * dz);
+};
+
+export const calculateDirection = (from: Vector3, to: Vector3) => {
+  const direction = new Vector3(to.x - from.x, to.y - from.y, to.z - from.z);
+  return direction.normalize();
+}
+
 export function getSensorWorldPositions(
   position: Vector3,
   direction: Vector3,

@@ -1,38 +1,7 @@
-import { createAdded, Not, World } from "koota";
+import { Not, World } from "koota";
+import { CarriedBy, Carrying, Direction, IsAnt, IsColony, IsFood, MeshRef, PheromoneSpawner, Position, RandomDirection, Sensors, Targeting } from "../traits";
 import { Quaternion, Vector3 } from "three";
-
-import { CarriedBy, Carrying, Direction, IsAnt, IsColony, IsFood, MeshRef, Move, PheromoneSpawner, Position, RandomDirection, Sensors, Static, Targeting } from "./traits";
-
-// for demo purposes we store all systems in a single file
-
-/**
- * Update position of three.js meshes to reflect value of Position trait values 
- */
-const Added = createAdded();
-
-export const SyncPositionToThree = ({ world }: { world: World }) => {
-  // static entities 
-  world.query(Added(Position, MeshRef, Static)).updateEach(([ pos, { ref: mesh }]) => {
-    mesh.position.copy(pos);
-  })
-
-  world.query(Position, Direction, MeshRef, Not(Static)).updateEach(([pos, dir, { ref: mesh }]) => {
-    // sync back to three
-    mesh.position.copy(pos);
-    const target = pos.clone().add(dir.current);
-    mesh.lookAt(target);
-  });
-
-  world.query(Position, MeshRef, Not(Static, Direction)).updateEach(( [pos, { ref: mesh } ]) => {
-    mesh.position.copy(pos);
-  })
-}
-
-const getDistance2D = (pos1: { x: number, z: number }, pos2: { x: number, z: number }): number => {
-  const dx = pos1.x - pos2.x;
-  const dz = pos1.z - pos2.z;
-  return Math.sqrt(dx * dx + dz * dz);
-};
+import { getDistance2D } from "../../utils";
 
 export const FindFood = ({ world }: { world: World }) => {
   const FOOD_DETECTION_RANGE = 10;
@@ -142,11 +111,6 @@ export const DropOffFood = ({ world }: {world: World }) => {
   })
 }
 
-const calculateDirection = (from: Vector3, to: Vector3) => {
-  const direction = new Vector3(to.x - from.x, to.y - from.y, to.z - from.z);
-  return direction.normalize();
-}
-
 export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta: number }) => {
   world.query(Position, CarriedBy("*"), IsFood).updateEach(([ pos ], entity) => {
     const ant = entity.targetFor(CarriedBy);
@@ -213,100 +177,3 @@ export const ScoutForFood = ({ world, delta }: { world: World, delta: number }) 
     */
   })
 }
-
-export const HandleRotation = ({ world, delta }: { world: World, delta: number }) => {
-  world.query(Direction).updateEach(([ dir ], entity) => {
-    let desired = dir.desired.clone();
-    const randomDir = entity.get(RandomDirection);
-
-    if (randomDir?.direction) {
-      desired = desired.add(randomDir.direction.clone().multiplyScalar(0.3))
-    }
-
-    dir.current.lerp(desired, 2 * delta).normalize();
-  })
-}
-
-export const HandleMove = ({ world, delta }: { world: World, delta: number }) => {
-  world.query(Position, Direction, Move).updateEach(([ pos, dir, move ]) => {
-    pos.x += dir.current.x * move.speed * delta;
-    pos.y += dir.current.y * move.speed * delta;
-    pos.z += dir.current.z * move.speed * delta;
-  })
-}
-
-export const MoveAntsToTarget = ({ world, delta }: { world: World, delta: number }) => {
-  const ROTATION_SPEED = 2;
-  world.query(Position, MeshRef, Targeting('*'), IsAnt).updateEach(([ pos, meshRef ], entity) => {
-    const mesh = meshRef.ref;
-
-    if (!mesh) return;
-
-    const target = entity.targetFor(Targeting);
-    const targetPos = target?.get(Position);
-
-    if (!target || !targetPos) return;
-
-    // Calculate direction vector from rotation
-    const direction = calculateDirection(new Vector3(pos.x, 0, pos.z), new Vector3(targetPos.x, 0, targetPos.z));
-
-    const quaternion = new Quaternion().setFromUnitVectors(new Vector3(0, 0, 1), direction)
-    // mesh.quaternion.copy(quaternion);
-    mesh.quaternion.slerp(quaternion, ROTATION_SPEED * delta);
-    // direction.applyQuaternion(mesh.quaternion); // Apply rotation to get world direction
-
-    // Update position to move in the direction of the rotation
-    const speed = 4;
-    pos.x += direction.x * speed * delta;
-    pos.y += direction.y * speed * delta;
-    pos.z += direction.z * speed * delta;
-  });
-}
-
-/* SYSTEMS FROM ORIGINAL EXAMPLE
-
-// this system demos some movement. in a real game our physics, AI, character controller, w/e
-// would be setting the position
-
-let elapsedTime = 0;
-const Added = createAdded();
-const SpawnTime = trait({current: 0});
-export const AnimateSpheres = ({world, delta}: { world: World, delta: number }) => {
-
-  elapsedTime += delta;
-
-  world.query(Added(IsAnt)).updateEach((_, entity) => {
-    entity.add(SpawnTime({current: elapsedTime * 1.1}))
-  });
-
-  world.query(Position, SpawnTime, IsAnt).updateEach(([pos, spawnTime]) => {
-    const T = spawnTime.current + elapsedTime;
-    const scale = 2 / (3 - Math.cos(T));
-    pos.x = -7 + scale * Math.cos(T) * 25;
-    pos.z = scale * Math.sin(T) * 12.5;
-    pos.y = 2 * Math.cos(T) * Math.sin(T / 2) * 10;
-  });
-
-// =====================================================================================================================
-// =====================================================================================================================
-
-
-// this system will animate the colors based on position
-
-const orange = [255, 100, 0];
-const violet = [148, 0, 211];
-
-export const AnimateColors = ({world}: { world: World }) => {
-
-  world.query(Position, MeshRef).updateEach(([pos, {ref: mesh}]) => {
-
-    const distFromOrigin = mapLinear(Math.hypot(pos.x, pos.y, pos.z), 0, 25, 0, 1);
-    const r = orange[0] * distFromOrigin + (1 - distFromOrigin) * violet[0];
-    const g = orange[1] * distFromOrigin + (1 - distFromOrigin) * violet[1];
-    const b = orange[2] * distFromOrigin + (1 - distFromOrigin) * violet[2];
-
-    (mesh.material as MeshStandardMaterial).color.set(r / 255, g / 255, b / 255);
-  });
-
-}
-*/
