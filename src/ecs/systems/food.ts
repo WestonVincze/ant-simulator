@@ -13,13 +13,11 @@ export const SyncFoodManager = ({ world }: { world: World }) => {
     if (!pos) return;
 
     foodManager.addItem(entity, pos, { value: 1 })
-    // console.log(foodManager.queryItem(new Vector3, 1000));
   })
 
   // remove food from foodManager once it is carried by an ant
   world.query(Added(CarriedBy("*"))).forEach(entity => {
     foodManager.removeItem(entity.id());
-    // console.log(foodManager.queryItem(new Vector3, 1000));
   })
 }
 

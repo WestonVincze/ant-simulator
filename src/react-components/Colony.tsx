@@ -8,7 +8,6 @@ export function Colony () {
   const meshRef = useRef<Mesh>(null!);
 
   useEffect(() => {
-    console.log(colony)
     colony?.add(MeshRef({ ref: meshRef.current }))
 
     return () => {

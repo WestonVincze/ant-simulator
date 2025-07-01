@@ -4,13 +4,7 @@ import { Quaternion, Vector3 } from "three";
 import { Direction, IsAnt, Move, Position, RandomDirection, Targeting } from "../traits";
 import { calculateDirection } from "../../utils";
 
-// for demo purposes we store all systems in a single file
-
-/**
- * Update position of three.js meshes to reflect value of Position trait values 
- */
-
-const MAX_DISTANCE = 250;
+const MAX_DISTANCE = 150;
 
 export const HandleMove = ({ world, delta }: { world: World, delta: number }) => {
   world.query(Position, Direction, Move).updateEach(([ pos, dir, move ]) => {

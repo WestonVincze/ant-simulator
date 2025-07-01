@@ -62,59 +62,31 @@ export const DetectPheromones = ({ world }: { world: World }) => {
       right: sensors.rightOffset
     })
 
-    let lowestStepCount = Infinity;
-    let bestDirection = "forward";
-
     // count pheromones in each sensor
-    pheromoneManager.query(sensorPos.front, sensors.radius)
+    const forwardValue = pheromoneManager.query(sensorPos.front, sensors.radius)
       .filter(item => item.data.type === sensors.lookingFor)
-      .forEach(item => {
-        if (item.data.stepsFromGoal <= lowestStepCount) {
-          lowestStepCount = item.data.stepsFromGoal;
-          bestDirection = "forward";
-        }
-      })
+      .reduce((prev, curr) =>
+        curr.data.stepsFromGoal > 0 ? prev += 1 / curr.data.stepsFromGoal : 2,
+      0);
 
-    pheromoneManager.query(sensorPos.left, sensors.radius)
+    const leftValue =pheromoneManager.query(sensorPos.left, sensors.radius)
       .filter(item => item.data.type === sensors.lookingFor)
-      .forEach(item => {
-        if (item.data.stepsFromGoal <= lowestStepCount) {
-          lowestStepCount = item.data.stepsFromGoal;
-          bestDirection = "left";
-        }
-      })
+      .reduce((prev, curr) =>
+        curr.data.stepsFromGoal > 0 ? prev += 1 / curr.data.stepsFromGoal : 2,
+      0);
 
-    pheromoneManager.query(sensorPos.right, sensors.radius)
+    const rightValue = pheromoneManager.query(sensorPos.right, sensors.radius)
       .filter(item => item.data.type === sensors.lookingFor)
-      .forEach(item => {
-        if (item.data.stepsFromGoal <= lowestStepCount) {
-          lowestStepCount = item.data.stepsFromGoal;
-          bestDirection = "right";
-        }
-      })
+      .reduce((prev, curr) =>
+        curr.data.stepsFromGoal > 0 ? prev += 1 / curr.data.stepsFromGoal : 2,
+      0);
 
     // default to forward
     let desired = dir.desired.clone();
 
-    /*
-    if (
-      leftPheromones.length > frontPheromones.length &&
-      leftPheromones.length > rightPheromones.length
-    ) {
-      // turn left
+    if (leftValue > rightValue && leftValue > forwardValue) {
       desired = rotateVector(dir.current, +Math.PI / 4);
-    } else if (
-      rightPheromones.length > leftPheromones.length &&
-      rightPheromones.length > frontPheromones.length
-    ) {
-      // turn right
-      desired = rotateVector(dir.current, -Math.PI / 4);
-    }
-    */
-
-    if (bestDirection === "left") {
-      desired = rotateVector(dir.current, +Math.PI / 4);
-    } else if (bestDirection === "right") {
+    } else if (rightValue > leftValue && rightValue > forwardValue) {
       desired = rotateVector(dir.current, -Math.PI / 4);
     }
 
@@ -123,14 +95,6 @@ export const DetectPheromones = ({ world }: { world: World }) => {
 
   world.query()
 }
-
-/**
- * FOLLOW PHEROMONE TRAILS
- * detect pheromones in range and decide whether to follow them
- * first detect all pheromones in range
- * calculate the direction with the most pheromones?
- */
-
 
 export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: number }) => {
   const PHEROMONE_DROP_INTERVAL = 0.5;
@@ -165,31 +129,11 @@ export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: num
 }
 
 export const DegradePheromones = ({ world, delta }: { world: World, delta: number }) => {
-  /*
-  const UPDATE_INTERVAL = 1;
-
-  let timeSinceLastUpdate = 0;
-  */
-
   const pheromones = world.query(Pheromone)
 
   pheromones.updateEach(([ pheromone ], entity) => {
-    /*
-    timeSinceLastUpdate += delta;
-
-    if (timeSinceLastUpdate < UPDATE_INTERVAL) return;
-
-    timeSinceLastUpdate = 0;
-    */
 
     pheromone.intensity -= .01 * delta;
-    /* remove opacity for now
-    const mesh = meshRef.ref;
-    if (mesh && pheromone.intensity ) {
-      const material = mesh.material as MeshStandardMaterial;
-      material.opacity = Math.max(pheromone.intensity, 0);
-    }
-    */
 
     if (pheromone.intensity <= 0) {
       pheromoneManager.removeItem(entity.id());

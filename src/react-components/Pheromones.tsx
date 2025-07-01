@@ -19,7 +19,6 @@ function PheromoneInstances({ type, color }: { type: string; color: string }) {
   useEffect(() => {
     meshRef.current.instanceMatrix.setUsage(DynamicDrawUsage);
     if (type === "home") {
-      console.log("home")
       world.add(HomePheromoneMeshRef({ ref: meshRef.current }));
     } else if (type === "food") {
       world.add(FoodPheromoneMeshRef({ ref: meshRef.current }));
