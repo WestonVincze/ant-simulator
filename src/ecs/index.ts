@@ -63,7 +63,12 @@ export const exampleActions = createActions((world: World) => ({
     world.queryFirst(IsAnt)?.destroy();
   },
 
-  spawnFood: (x: number = Math.random() * 100 - 50, y: number = 0.5, z: number = Math.random() * 100 - 50) => {
+  spawnFood: (
+    x: number = (Math.random() * 100 + 25) * (Math.random() > 0.5 ? 1 : -1),
+    y: number = 0.5,
+    z: number = (Math.random() * 100 + 25) * (Math.random() > 0.5 ? 1 : -1)
+  ) => {
+    console.log(x,y,z);
     for (let i = 0; i < 10; i++) {
       const xOffset = Math.random() * 10 - 5;
       const zOffset = Math.random() * 10 - 5;
