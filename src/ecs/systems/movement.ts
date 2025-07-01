@@ -10,13 +10,33 @@ import { calculateDirection } from "../../utils";
  * Update position of three.js meshes to reflect value of Position trait values 
  */
 
-const MAX_DISTANCE = 100;
+const MAX_DISTANCE = 250;
 
 export const HandleMove = ({ world, delta }: { world: World, delta: number }) => {
   world.query(Position, Direction, Move).updateEach(([ pos, dir, move ]) => {
     if (move.currentSpeed < move.maxSpeed) {
       move.currentSpeed = Math.min(move.maxSpeed, move.currentSpeed + 5 * delta);
     }
+
+    if (
+      dir.timeSinceLastTurnAround > 5 &&
+      pos.x > MAX_DISTANCE ||
+      pos.x < -1 * MAX_DISTANCE ||
+      pos.z > MAX_DISTANCE ||
+      pos.z < -1 * MAX_DISTANCE
+    ) {
+      // TODO: get position of ant colony 
+      const directionToColony = new Vector3(
+        0 - pos.x,
+        0,
+        0 - pos.z
+      ).normalize();
+
+      dir.desired = directionToColony;
+      dir.timeSinceLastTurnAround = 0;
+    }
+    dir.timeSinceLastTurnAround += delta;
+
     pos.x += dir.current.x * move.currentSpeed * delta;
     pos.y += dir.current.y * move.currentSpeed * delta;
     pos.z += dir.current.z * move.currentSpeed * delta;

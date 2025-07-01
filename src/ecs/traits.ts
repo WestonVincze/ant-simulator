@@ -16,6 +16,7 @@ export const Move = trait({
 export const Direction = trait({
   desired: () => new Vector3,
   current: () => new Vector3,
+  timeSinceLastTurnAround: 0 
 });
 
 export const RandomDirection = trait({
