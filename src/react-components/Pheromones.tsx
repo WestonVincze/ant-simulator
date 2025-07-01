@@ -34,7 +34,7 @@ function PheromoneInstances({ type, color }: { type: string; color: string }) {
   return (
     <instancedMesh
       ref={meshRef}
-      args={[undefined, undefined, 1000000]}
+      args={[undefined, undefined, 100000]}
     >
       <dodecahedronGeometry args={[0.2]} />
       <meshStandardMaterial color={color} /*transparent opacity={0.5}*/ />

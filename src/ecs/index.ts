@@ -36,24 +36,27 @@ world.spawn(IsColony, Position(new Vector3(0, 2.5, 0)), Static);
 
 export const exampleActions = createActions((world: World) => ({
   spawnAnt: () => {
-   const direction = new Vector3(Math.random() * 2 - 1, 0, Math.random() * 2 - 1)
-    world.spawn(
-      IsAnt,
-      Position(new Vector3(0, 0, 0)),
-      Direction({
-        current: direction.clone(),
-        desired: direction.clone(),
-      }),
-      PheromoneSpawner({ timeSinceLastSpawn: 0 }),
-      Move({ maxSpeed: 3 }),
-      Sensors({
-        frontOffset: new Vector3(0, 0, 5),
-        leftOffset: new Vector3(4, 0, 3),
-        rightOffset: new Vector3(-4, 0, 3),
-        radius: 1.75,
-        lookingFor: "food"
-      })
-    )
+    for (let i = 0; i < 10; i++) {
+      const direction = new Vector3(Math.random() * 2 - 1, 0, Math.random() * 2 - 1)
+
+      world.spawn(
+        IsAnt,
+        Position(new Vector3(0, 0, 0)),
+        Direction({
+          current: direction.clone(),
+          desired: direction.clone(),
+        }),
+        PheromoneSpawner({ timeSinceLastSpawn: 0 }),
+        Move({ maxSpeed: 3 }),
+        Sensors({
+          frontOffset: new Vector3(0, 0, 5),
+          leftOffset: new Vector3(4, 0, 3),
+          rightOffset: new Vector3(-4, 0, 3),
+          radius: 1.75,
+          lookingFor: "food"
+        })
+      )
+    }
   },
 
   removeAnt: () => {
@@ -61,7 +64,11 @@ export const exampleActions = createActions((world: World) => ({
   },
 
   spawnFood: (x: number = Math.random() * 100 - 50, y: number = 0.5, z: number = Math.random() * 100 - 50) => {
-    world.spawn(IsFood, Position(new Vector3(x, y, z)));
+    for (let i = 0; i < 10; i++) {
+      const xOffset = Math.random() * 10 - 5;
+      const zOffset = Math.random() * 10 - 5;
+      world.spawn(IsFood, Position(new Vector3(x + xOffset, y, z + zOffset)));
+    }
   },
 
   removeFood: () => {
