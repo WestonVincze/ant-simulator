@@ -94,7 +94,7 @@ export const DetectPheromones = ({ world }: { world: World }) => {
       })
 
     // default to forward
-    let desired = dir.current.clone();
+    let desired = dir.desired.clone();
 
     /*
     if (

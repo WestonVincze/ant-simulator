@@ -1,6 +1,5 @@
 import { createAdded, Not, World } from "koota";
-import { CarriedBy, Carrying, Direction, IsAnt, IsColony, IsFood, MeshRef, PheromoneSpawner, Position, RandomDirection, Sensors, Targeting } from "../traits";
-import { Quaternion, Vector3 } from "three";
+import { CarriedBy, Carrying, Direction, IsAnt, IsColony, IsFood, Move, PheromoneSpawner, Position, Sensors, Targeting } from "../traits";
 import { getDistance2D } from "../../utils";
 import { SpatialManager } from "../../spatialTrees/SpatialManager";
 
@@ -57,7 +56,10 @@ export const FindFood = ({ world }: { world: World }) => {
 
         // TODO: flip less aggressively
         const dir = entity.get(Direction);
-        entity.set(Direction, { ...dir, current: dir?.current.multiplyScalar(-1) })
+        entity.set(Direction, { ...dir, desired: dir?.current.clone().multiplyScalar(-1) })
+
+        const move = entity.get(Move);
+        entity.set(Move, { ...move, currentSpeed: 0 });
 
         const sensors = entity.get(Sensors);
         if (sensors) {
@@ -118,7 +120,10 @@ export const DropOffFood = ({ world }: {world: World }) => {
 
       // TODO: flip less aggressively
       const dir = entity.get(Direction);
-      entity.set(Direction, { ...dir, current: dir?.current.multiplyScalar(-1) })
+      entity.set(Direction, { ...dir, desired: dir?.current.clone().multiplyScalar(-1) })
+
+      const move = entity.get(Move);
+      entity.set(Move, { ...move, currentSpeed: 0.5 });
       return;
     }
 
@@ -142,46 +147,4 @@ export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta:
     pos.y = antPosition.y + 0.5;
     pos.z = antPosition.z + offset.z;
   });
-}
-
-// ants move "randomly" when they don't have a target
-export const ScoutForFood = ({ world, delta }: { world: World, delta: number }) => {
-  const RANDOM_DIRECTION_UPDATE_INTERVAL = 1;
-  const SCOUT_SPEED = 4;
-  const MAX_TURN_ANGLE = Math.PI / 6;
-  const ROTATION_SPEED = 2;
-
-  world.query(Position, Direction, MeshRef, IsAnt, Not(Targeting("*"))).updateEach(([ pos, dir, meshRef ], entity) => {
-    let randomDirection  = entity.get(RandomDirection);
-
-    if (!randomDirection) {
-      const direction = new Vector3(
-        Math.random() * 2 - 1,
-        0,
-        Math.random() * 2 - 1
-      ).normalize();
-
-      randomDirection = { 
-        direction,
-        timeSinceLastUpdate: 0
-      }
-
-      entity.add(RandomDirection(randomDirection))
-    }
-
-    randomDirection.timeSinceLastUpdate += delta;
-
-    if (randomDirection.timeSinceLastUpdate >= RANDOM_DIRECTION_UPDATE_INTERVAL) {
-      const randomAngle = (Math.random() * 2 - 1) * MAX_TURN_ANGLE;
-
-      const q = new Quaternion().setFromAxisAngle(new Vector3(0, 1, 0), randomAngle);
-
-      const newDirection = randomDirection.direction.clone().applyQuaternion(q).normalize();
-
-      randomDirection.direction.copy(newDirection);
-      randomDirection.timeSinceLastUpdate = 0;
-    }
-
-    entity.set(RandomDirection, randomDirection);
-  })
 }

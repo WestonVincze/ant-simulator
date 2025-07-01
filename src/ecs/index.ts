@@ -1,7 +1,7 @@
 import { createWorld, World, createActions } from "koota";
 import { Schedule } from "directed";
 
-import { DropOffFood, FaceAntsTowardTarget, FindFood, HandleMove, HandleRotation, ScoutForFood, SyncCarriedFoodPosition, SyncFoodManager, SyncPositionToThree } from "./systems";
+import { DropOffFood, FaceAntsTowardTarget, FindFood, HandleMove, HandleRotation, DirectionalJitter, SyncCarriedFoodPosition, SyncFoodManager, SyncPositionToThree } from "./systems";
 import { Direction, IsAnt, IsColony, IsFood, Move, Pheromone, PheromoneSpawner, Position, Sensors, Static } from "./traits";
 import { Vector3 } from "three";
 import { DegradePheromones, DetectPheromones, LeavePheromoneTrail, RenderPheromones } from "./systems/pheromones";
@@ -16,7 +16,7 @@ export const schedule = new Schedule<{ world: World, delta: number }>();
 schedule.add(SyncFoodManager, { before: DetectPheromones });
 schedule.add(DetectPheromones, { before: FindFood });
 schedule.add(FindFood, { before: HandleMove });
-schedule.add(ScoutForFood, { after: FindFood })
+schedule.add(DirectionalJitter, { after: FindFood })
 schedule.add(FaceAntsTowardTarget, { after: FindFood });
 schedule.add(DropOffFood, { after: FaceAntsTowardTarget });
 schedule.add(HandleMove);
@@ -42,10 +42,10 @@ export const exampleActions = createActions((world: World) => ({
       Position(new Vector3(0, 0, 0)),
       Direction({
         current: direction.clone(),
-        desired: new Vector3(0, 0, 1),
+        desired: direction.clone(),
       }),
       PheromoneSpawner({ timeSinceLastSpawn: 0 }),
-      Move({ speed: 3 }),
+      Move({ maxSpeed: 3 }),
       Sensors({
         frontOffset: new Vector3(0, 0, 5),
         leftOffset: new Vector3(4, 0, 3),

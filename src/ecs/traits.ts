@@ -9,7 +9,8 @@ export const Carrying = relation({ exclusive: true });
 export const CarriedBy = relation();
 
 export const Move = trait({
-  speed: 4
+  maxSpeed: 4,
+  currentSpeed: 4,
 })
 
 export const Direction = trait({
