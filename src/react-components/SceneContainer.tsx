@@ -48,7 +48,7 @@ const Background = () => {
 
   return (
     <>
-      <color attach="background" args={['#226033']} />
+      <color attach="background" args={['#606033']} />
       <directionalLight castShadow color={"#ffb65e"} intensity={3} position={[4, 3, 1]} />
 
       {texture && (

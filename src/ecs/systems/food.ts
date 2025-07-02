@@ -1,5 +1,5 @@
 import { createAdded, Not, World } from "koota";
-import { CarriedBy, Carrying, Direction, IsAnt, IsColony, IsFood, Move, PheromoneSpawner, Position, Sensors, Targeting } from "../traits";
+import { CarriedBy, Carrying, Direction, InColony, IsAnt, IsColony, IsFood, Move, PheromoneSpawner, Position, Sensors, Targeting } from "../traits";
 import { getDistance2D } from "../../utils";
 import { SpatialManager } from "../../spatialTrees/SpatialManager";
 
@@ -98,12 +98,12 @@ export const DropOffFood = ({ world }: {world: World }) => {
 
     const distance = getDistance2D({ x: pos.x, z: pos.z }, { x: targetPos.x, z: targetPos.z })
 
-    if (distance < 5) {
+    if (distance < 3) {
       entity.remove(Targeting("*"));
       entity.remove(Carrying("*"));
       const food = entity.targetFor(Carrying);
       food?.remove(CarriedBy("*"));
-      food?.remove(IsFood);
+      food?.add(InColony);
 
       const sensors = entity.get(Sensors);
       if (sensors) {

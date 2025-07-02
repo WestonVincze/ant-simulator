@@ -41,6 +41,7 @@ export const Position = trait(() => new Vector3);
 export const MeshRef = trait({ref: new Mesh});
 
 export const IsFood = trait();
+export const InColony = trait();
 
 export const IsColony = trait();
 
