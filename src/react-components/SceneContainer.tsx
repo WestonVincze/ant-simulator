@@ -8,6 +8,8 @@ import { Colony } from "./Colony";
 import { Pheromones } from "./Pheromones";
 import { ClickSpawner } from "./ClickSpawner";
 import { SensorGizmos } from "./SensorGizmos";
+import { Texture, TextureLoader } from "three";
+import { useEffect, useState } from "react";
 
 export function SceneContainer() {
   const world = useWorld();
@@ -34,19 +36,27 @@ export function SceneContainer() {
 }
 
 const Background = () => {
+  const [texture, setTexture] = useState<Texture | null>(null);
+
+  useEffect(() => {
+    const loader = new TextureLoader();
+    loader.load("bg.png", (loadedTexture) => {
+      setTexture(loadedTexture);
+    })
+
+  }, []);
+
   return (
     <>
-      <color attach="background" args={['#060612']} />
+      <color attach="background" args={['#226033']} />
       <directionalLight castShadow color={"#ffb65e"} intensity={3} position={[4, 3, 1]} />
 
-      <Grid
-        infiniteGrid
-        fadeDistance={500}
-        fadeStrength={5}
-        cellSize={6} sectionSize={3}
-        sectionColor={'#3d4367'}
-        cellColor={'rgb(15,28,145)'}
-      />
+      {texture && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
+          <planeGeometry args={[500, 500]} />
+          <meshStandardMaterial map={texture} />
+        </mesh>
+      )}
 
       <Environment frames={1} environmentIntensity={0.4}>
         <Sky sunPosition={[0, 1, 11]}/>
