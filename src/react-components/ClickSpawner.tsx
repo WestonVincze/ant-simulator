@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Plane, Raycaster, Vector2, Vector3 } from "three";
 import { useThree } from "@react-three/fiber";
 import { useActions } from "koota/react";
@@ -10,7 +10,10 @@ export const ClickSpawner = () => {
   const { camera, gl, size } = useThree();
   const { spawnPheromone, spawnFood, spawnAnt } = useActions(exampleActions);
 
-  const handleClick = useCallback((event: MouseEvent) => {
+  const [isSpawning, setIsSpawning] = useState(false);
+
+  const handleClick = (event: MouseEvent) => {
+    if (!isSpawning) return;
     // Convert mouse position to NDC (-1 to 1)
     const mouse = new Vector2(
       (event.clientX / size.width) * 2 - 1,
@@ -32,15 +35,16 @@ export const ClickSpawner = () => {
         spawnPheromone(intersection.x, 0, intersection.z);
       }
     }
-  }, [camera, size, spawnObject]);
+  };
 
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+  const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === "f") {
-      setSpawnObject("food");
+      setIsSpawning((prev) => !prev);
+      // setSpawnObject("food");
     } else if (event.key === "p") {
-      setSpawnObject("pheromone")
+      // setSpawnObject("pheromone")
     }
-  }, []);
+  }
 
   useEffect(() => {
     const canvas = gl.domElement;

@@ -20,12 +20,12 @@ export const RenderPheromones = ({ world }: { world: World }) => {
 
   const pheromones = world.query(Position, Pheromone);
 
-  if (pheromones.length === 0) return;
-
   const foodPheromones = pheromones.filter(p => p.get(Pheromone)?.type === "food");
-
   const homePheromones = pheromones.filter(p => p.get(Pheromone)?.type === "home")
-  
+
+  food.ref.count = foodPheromones.length;
+  home.ref.count = homePheromones.length;
+
   foodPheromones.forEach((entity, i) => {
     const pos = entity.get(Position)!;
 
@@ -35,7 +35,6 @@ export const RenderPheromones = ({ world }: { world: World }) => {
     food?.ref?.setMatrixAt(i, dummy.matrix);
   })
 
-  food.ref.count = foodPheromones.length;
   food.ref.instanceMatrix.needsUpdate = true;
 
   homePheromones.forEach((entity, i) => {
@@ -47,7 +46,6 @@ export const RenderPheromones = ({ world }: { world: World }) => {
     home?.ref?.setMatrixAt(i, dummy.matrix);
   })
 
-  home.ref.count = homePheromones.length;
   home.ref.instanceMatrix.needsUpdate = true;
 
 }

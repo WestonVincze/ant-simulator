@@ -1,6 +1,8 @@
-import { Environment, Grid, OrbitControls, PerspectiveCamera, Sky } from "@react-three/drei";
-import { useFrame } from "@react-three/fiber";
+import { Environment, OrbitControls, PerspectiveCamera, Sky } from "@react-three/drei";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useWorld } from "koota/react";
+import { EquirectangularReflectionMapping, SRGBColorSpace, Texture, TextureLoader } from "three";
+import { useEffect, useState } from "react";
 import { AntSpawner } from "./AntSpawner";
 import { schedule } from "../ecs";
 import { FoodSpawner } from "./FoodSpawner";
@@ -8,8 +10,6 @@ import { Colony } from "./Colony";
 import { Pheromones } from "./Pheromones";
 import { ClickSpawner } from "./ClickSpawner";
 import { SensorGizmos } from "./SensorGizmos";
-import { Texture, TextureLoader } from "three";
-import { useEffect, useState } from "react";
 
 export function SceneContainer() {
   const world = useWorld();
@@ -36,20 +36,33 @@ export function SceneContainer() {
 }
 
 const Background = () => {
+  const { scene } = useThree();
   const [texture, setTexture] = useState<Texture | null>(null);
 
   useEffect(() => {
-    const loader = new TextureLoader();
+    const loader = new TextureLoader;
+    loader.load(
+      "bambanani_sunset.webp",
+      (texture) => {
+        texture.mapping = EquirectangularReflectionMapping;
+        texture.colorSpace = SRGBColorSpace;
+        scene.environment = texture;
+        scene.background = texture;
+      },
+      undefined,
+      (error) => {
+        console.error("Error loading texture file:", error);
+      }
+    );
     loader.load("bg.png", (loadedTexture) => {
       setTexture(loadedTexture);
     })
-
-  }, []);
+  }, [scene]);
 
   return (
     <>
-      <color attach="background" args={['#606033']} />
-      <directionalLight castShadow color={"#ffb65e"} intensity={3} position={[4, 3, 1]} />
+      {/*<color attach="background" args={['#606033']} />*/}
+      <directionalLight castShadow color={"#ffb65e"} intensity={3} position={[2, 6, 2.5]} />
 
       {texture && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
@@ -58,9 +71,11 @@ const Background = () => {
         </mesh>
       )}
 
+      {/*
       <Environment frames={1} environmentIntensity={0.4}>
         <Sky sunPosition={[0, 1, 11]}/>
       </Environment>
+      */}
     </>
   )
 }
