@@ -7,6 +7,7 @@ import { AntSpawner } from "./AntSpawner";
 import { schedule } from "../ecs";
 import { FoodSpawner } from "./FoodSpawner";
 import { Colony } from "./Colony";
+import { HeatmapShader } from "./HeatmapShader";
 import { Pheromones } from "./Pheromones";
 import { ClickSpawner } from "./ClickSpawner";
 import { SensorGizmos } from "./SensorGizmos";
@@ -24,6 +25,7 @@ export function SceneContainer() {
     <>
       <Colony />
       <Pheromones />
+      <HeatmapShader />
       <AntSpawner />
       <FoodSpawner />
       <Background />
