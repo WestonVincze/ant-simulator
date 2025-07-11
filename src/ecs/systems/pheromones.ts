@@ -4,6 +4,7 @@ import { Object3D } from "three";
 import { Carrying, Direction, FoodPheromoneMeshRef, HomePheromoneMeshRef, Pheromone, PheromoneSpawner, Position, Sensors, Static, Targeting } from "../traits";
 import { getSensorWorldPositions, rotateVector } from "../../utils";
 import { SpatialManager } from "../../spatialTrees/SpatialManager";
+import { measure } from "../../perf";
 
 const pheromoneManager = new SpatialManager<{ type: string, stepsFromGoal: number}>();
 
@@ -17,6 +18,8 @@ export const RenderPheromones = ({ world }: { world: World }) => {
     console.warn("InstanceMesh for food or home pheromones is missing.")
     return;
   }
+
+  const endMeasure = measure(RenderPheromones);
 
   const pheromones = world.query(Position, Pheromone);
 
@@ -47,10 +50,11 @@ export const RenderPheromones = ({ world }: { world: World }) => {
   })
 
   home.ref.instanceMatrix.needsUpdate = true;
-
+  endMeasure();
 }
 
 export const DetectPheromones = ({ world }: { world: World }) => {
+  const endMeasure = measure(DetectPheromones);
   // count pheromones in each ant's sensor
   world.query(Position, Direction, Sensors, Not(Targeting("*"))).updateEach(([ pos, dir, sensors ]) => {
     // calculate position of sensors
@@ -91,11 +95,12 @@ export const DetectPheromones = ({ world }: { world: World }) => {
     dir.desired.copy(desired.normalize());
   })
 
-  world.query()
+  endMeasure();
 }
 
 export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: number }) => {
   const PHEROMONE_DROP_INTERVAL = 0.5;
+  const endMeasure = measure(LeavePheromoneTrail);
 
   world.query(PheromoneSpawner, Position).updateEach(([ spawner, pos ], entity) => {
     spawner.timeSinceLastSpawn += delta;
@@ -124,6 +129,7 @@ export const LeavePheromoneTrail = ({ world, delta }: { world: World, delta: num
       spawner.timeSinceLastSpawn = 0;
     }
   });
+  endMeasure();
 }
 
 export const DegradePheromones = ({ world, delta }: { world: World, delta: number }) => {
