@@ -1,7 +1,7 @@
 import { createWorld, World, createActions } from "koota";
-import { Schedule } from "directed";
+import { before, Schedule } from "directed";
 
-import { DropOffFood, FaceAntsTowardTarget, FindFood, HandleMove, HandleRotation, DirectionalJitter, SyncCarriedFoodPosition, SyncFoodManager, SyncPositionToThree } from "./systems";
+import { DropOffFood, FaceAntsTowardTarget, FindFood, HandleMove, HandleRotation, DirectionalJitter, SyncCarriedFoodPosition, SyncFoodManager, SyncPositionToThree, HandleAnimations } from "./systems";
 import { Direction, IsAnt, IsColony, IsFood, Move, Pheromone, PheromoneSpawner, Position, Sensors, Static } from "./traits";
 import { Vector3 } from "three";
 import { DegradePheromones, DetectPheromones, LeavePheromoneTrail, RenderPheromones } from "./systems/pheromones";
@@ -13,6 +13,7 @@ export const world = createWorld();
 export const schedule = new Schedule<{ world: World, delta: number }>();
 
 // import all ecs systems and build the schedule
+schedule.add(HandleAnimations, { after: SyncPositionToThree });
 schedule.add(SyncFoodManager, { before: DetectPheromones });
 schedule.add(DetectPheromones, { before: FindFood });
 schedule.add(FindFood, { before: HandleMove });
@@ -68,7 +69,6 @@ export const exampleActions = createActions((world: World) => ({
     y: number = 0.5,
     z: number = (Math.random() * 100 + 25) * (Math.random() > 0.5 ? 1 : -1)
   ) => {
-    console.log(x,y,z);
     for (let i = 0; i < 10; i++) {
       const xOffset = Math.random() * 10 - 5;
       const zOffset = Math.random() * 10 - 5;

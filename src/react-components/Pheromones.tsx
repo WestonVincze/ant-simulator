@@ -33,6 +33,7 @@ function PheromoneInstances({ type, color }: { type: string; color: string }) {
   return (
     <instancedMesh
       ref={meshRef}
+      /* TODO: dynamically create a new instancedMesh once max count is reached */
       args={[undefined, undefined, 100000]}
     >
       <dodecahedronGeometry args={[0.2]} />

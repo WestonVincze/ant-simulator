@@ -1,4 +1,4 @@
-import { Environment, OrbitControls, PerspectiveCamera, Sky } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useWorld } from "koota/react";
 import { EquirectangularReflectionMapping, SRGBColorSpace, Texture, TextureLoader } from "three";
@@ -7,7 +7,6 @@ import { AntSpawner } from "./AntSpawner";
 import { schedule } from "../ecs";
 import { FoodSpawner } from "./FoodSpawner";
 import { Colony } from "./Colony";
-import { HeatmapShader } from "./HeatmapShader";
 import { Pheromones } from "./Pheromones";
 import { ClickSpawner } from "./ClickSpawner";
 import { SensorGizmos } from "./SensorGizmos";
@@ -25,7 +24,6 @@ export function SceneContainer() {
     <>
       <Colony />
       <Pheromones />
-      <HeatmapShader />
       <AntSpawner />
       <FoodSpawner />
       <Background />

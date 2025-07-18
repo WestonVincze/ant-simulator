@@ -1,5 +1,5 @@
 import { createAdded, Not, World } from "koota";
-import { Direction, MeshRef, Position, Static } from "../traits";
+import { AnimationRef, Direction, MeshRef, Position, Static } from "../traits";
 
 const Added = createAdded();
 
@@ -19,4 +19,10 @@ export const SyncPositionToThree = ({ world }: { world: World }) => {
   world.query(Position, MeshRef, Not(Static, Direction)).updateEach(( [pos, { ref: mesh } ]) => {
     mesh.position.copy(pos);
   })
+}
+
+export const HandleAnimations = ({ world, delta }: { world: World, delta: number }) => {
+  world.query(AnimationRef).updateEach(([ ref ]) => {
+    ref.mixer?.update(delta);
+  });
 }
