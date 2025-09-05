@@ -1,4 +1,4 @@
-import { Environment, OrbitControls, PerspectiveCamera, Sky } from "@react-three/drei";
+import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useWorld } from "koota/react";
 import { EquirectangularReflectionMapping, SRGBColorSpace, Texture, TextureLoader } from "three";
