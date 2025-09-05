@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Entity } from "koota";
 import { useQuery } from "koota/react";
-import { Group, Mesh, AnimationMixer, AnimationAction } from "three";
+import { Group, Mesh, AnimationMixer, AnimationAction, MeshStandardMaterial, TextureLoader } from "three";
 import { GLTFLoader } from "three-stdlib";
 
 import { AnimationRef, IsAnt, MeshRef, Position } from "../ecs/traits";
@@ -24,6 +24,35 @@ export function AntSpawner() {
           sharedModel = gltf.scene;
           sharedAnimations = gltf.animations;
           walkAnimation = sharedAnimations.find(a => a.name === "Walk");
+
+          // Load the bump texture
+          const textureLoader = new TextureLoader();
+          const bumpTexture = textureLoader.load("ant/textures/ant_carp_bump.png");
+
+          // Assign a lustrous black material to all meshes in the model
+          sharedModel.traverse((child: any) => {
+            if (child.isMesh) {
+              // Eyes
+              if (child.name === "Hercules_Ant051" || child.name === "Hercules_Ant064") {
+                child.material = new MeshStandardMaterial({
+                  color: 0x080808,
+                  metalness: 0.9,
+                  roughness: 0.1,
+                  envMapIntensity: 1.5
+                });
+              } else {
+                child.material = new MeshStandardMaterial({
+                  color: 0x2a1c0a,
+                  metalness: 0.5,
+                  roughness: 0.3,
+                  envMapIntensity: 1.0,
+                  bumpMap: bumpTexture,
+                  bumpScale: 0.4
+                });
+                child.material.needsUpdate = true;
+              }
+            }
+          });
         },
         undefined,
         (error) => {
