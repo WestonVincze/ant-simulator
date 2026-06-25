@@ -1,8 +1,10 @@
-import { World } from "koota";
+import { Not, World } from "koota";
 import { Quaternion, Vector3 } from "three";
 
-import { Direction, IsAnt, Move, Position, RandomDirection, Targeting } from "../traits";
+import { Direction, IsAnt, IsColony, Move, PheromoneSpawner, Position, RandomDirection, Sensors, Targeting } from "../traits";
 import { calculateDirection } from "../../utils";
+import { getAnthillHeight } from "../../constants";
+import { settings } from "../../settings";
 
 const MAX_DISTANCE = 150;
 
@@ -103,4 +105,48 @@ export const FaceAntsTowardTarget = ({ world }: { world: World }) => {
 
     dir.desired = direction;
   });
+}
+
+export const HandleAntSlope = ({ world }: { world: World }) => {
+  const colony = world.queryFirst(Position, IsColony);
+  if (!colony) return;
+
+  const colonyPos = colony.get(Position)!;
+
+  world.query(Position, IsAnt).updateEach(([pos]) => {
+    const dx = pos.x - colonyPos.x;
+    const dz = pos.z - colonyPos.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    pos.y = getAnthillHeight(dist);
+  });
+}
+
+let spawnTimer = 0;
+
+export const AutoSpawnAnts = ({ world, delta }: { world: World, delta: number }) => {
+  if (!settings.simulationActive) return;
+
+  spawnTimer += delta;
+  if (spawnTimer >= settings.antSpawnRate) {
+    spawnTimer = 0;
+    const direction = new Vector3(Math.random() * 2 - 1, 0, Math.random() * 2 - 1);
+
+    world.spawn(
+      IsAnt,
+      Position(new Vector3(0, 0, 0)),
+      Direction({
+        current: direction.clone(),
+        desired: direction.clone(),
+      }),
+      PheromoneSpawner({ timeSinceLastSpawn: 0 }),
+      Move({ maxSpeed: 3 }),
+      Sensors({
+        frontOffset: new Vector3(0, 0, 5),
+        leftOffset: new Vector3(4, 0, 3),
+        rightOffset: new Vector3(-4, 0, 3),
+        radius: 1.75,
+        lookingFor: "food"
+      })
+    );
+  }
 }
