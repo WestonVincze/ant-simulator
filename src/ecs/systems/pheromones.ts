@@ -1,5 +1,5 @@
 import { Not, World } from "koota";
-import { Object3D } from "three";
+import { Points } from "three";
 
 import { Carrying, Direction, FoodPheromoneMeshRef, HomePheromoneMeshRef, Pheromone, PheromoneSpawner, Position, Sensors, Static, Targeting } from "../traits";
 import { getSensorWorldPositions, rotateVector } from "../../utils";
@@ -8,48 +8,42 @@ import { measure } from "../../perf";
 
 const pheromoneManager = new SpatialManager<{ type: string, stepsFromGoal: number}>();
 
-const dummy = new Object3D();
+function writePheromoneBuffer(points: Points, entities: readonly any[]) {
+  const geom = points.geometry;
+  const posArr = geom.attributes.position.array as Float32Array;
+  const intArr = (geom.attributes as any).aIntensity.array as Float32Array;
+
+  for (let i = 0; i < entities.length; i++) {
+    const pos = entities[i].get(Position)!;
+    const pheromone = entities[i].get(Pheromone)!;
+    const i3 = i * 3;
+    posArr[i3] = pos.x;
+    posArr[i3 + 1] = 0.5;
+    posArr[i3 + 2] = pos.z;
+    intArr[i] = pheromone.intensity;
+  }
+
+  geom.attributes.position.needsUpdate = true;
+  geom.attributes.aIntensity.needsUpdate = true;
+  geom.setDrawRange(0, entities.length);
+}
 
 export const RenderPheromones = ({ world }: { world: World }) => {
   const food = world.get(FoodPheromoneMeshRef);
   const home = world.get(HomePheromoneMeshRef);
 
-  if (!food?.ref || !home?.ref) {
-    console.warn("InstanceMesh for food or home pheromones is missing.")
-    return;
-  }
+  if (!food?.ref || !home?.ref) return;
 
   const endMeasure = measure(RenderPheromones);
 
   const pheromones = world.query(Position, Pheromone);
 
   const foodPheromones = pheromones.filter(p => p.get(Pheromone)?.type === "food");
-  const homePheromones = pheromones.filter(p => p.get(Pheromone)?.type === "home")
+  const homePheromones = pheromones.filter(p => p.get(Pheromone)?.type === "home");
 
-  food.ref.count = foodPheromones.length;
-  home.ref.count = homePheromones.length;
+  writePheromoneBuffer(food.ref, foodPheromones);
+  writePheromoneBuffer(home.ref, homePheromones);
 
-  foodPheromones.forEach((entity, i) => {
-    const pos = entity.get(Position)!;
-
-    dummy.position.set(pos.x, 0.5, pos.z);
-    dummy.updateMatrix();
-
-    food?.ref?.setMatrixAt(i, dummy.matrix);
-  })
-
-  food.ref.instanceMatrix.needsUpdate = true;
-
-  homePheromones.forEach((entity, i) => {
-    const pos = entity.get(Position)!;
-
-    dummy.position.set(pos.x, 0.5, pos.z);
-    dummy.updateMatrix();
-
-    home?.ref?.setMatrixAt(i, dummy.matrix);
-  })
-
-  home.ref.instanceMatrix.needsUpdate = true;
   endMeasure();
 }
 
