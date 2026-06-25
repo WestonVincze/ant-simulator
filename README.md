@@ -20,8 +20,6 @@ The front sensor picks up some pheromones that lead to food, the right sensor pi
 
 The left sensor has no value, since the ant is not trying to return home. The front sensor has some value, but the right sensor has the greatest value. Therefore, the ant will move forward and turn slightly to the right.
 
-
-
 ## Getting Started
 
 ### Install Dependencies

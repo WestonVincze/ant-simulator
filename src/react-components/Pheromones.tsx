@@ -59,7 +59,7 @@ function PheromonePoints({ type, color }: { type: string; color: string }) {
 
   const material = useMemo(() => new ShaderMaterial({
     uniforms: {
-      uMaxSize: { value: 1.5 },
+      uMaxSize: { value: 5 },
       uScale: { value: 300.0 },
       uColor: { value: new Color(color) },
       uOpacity: { value: 0.9 },

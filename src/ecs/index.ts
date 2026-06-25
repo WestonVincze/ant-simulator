@@ -1,7 +1,7 @@
 import { createWorld, World, createActions } from "koota";
-import { before, Schedule } from "directed";
+import { Schedule } from "directed";
 
-import { DropOffFood, FaceAntsTowardTarget, FindFood, HandleMove, HandleRotation, DirectionalJitter, SyncCarriedFoodPosition, SyncFoodManager, SyncPositionToThree, HandleAnimations } from "./systems";
+import { AutoSpawnAnts, DropOffFood, FaceAntsTowardTarget, FindFood, HandleAntSlope, HandleMove, HandleRotation, DirectionalJitter, SyncCarriedFoodPosition, SyncFoodManager, SyncPositionToThree, HandleAnimations } from "./systems";
 import { Direction, IsAnt, IsColony, IsFood, Move, Pheromone, PheromoneSpawner, Position, Sensors, Static } from "./traits";
 import { Vector3 } from "three";
 import { DegradePheromones, DetectPheromones, LeavePheromoneTrail, RenderPheromones } from "./systems/pheromones";
@@ -21,9 +21,11 @@ schedule.add(DirectionalJitter, { after: FindFood })
 schedule.add(FaceAntsTowardTarget, { after: FindFood });
 schedule.add(DropOffFood, { after: FaceAntsTowardTarget });
 schedule.add(HandleMove);
+schedule.add(AutoSpawnAnts, { after: HandleMove });
 schedule.add(LeavePheromoneTrail, { after: HandleMove })
 schedule.add(HandleRotation), { before: SyncPositionToThree };
-schedule.add(SyncPositionToThree, { after: LeavePheromoneTrail });
+schedule.add(HandleAntSlope, { after: HandleRotation, before: SyncPositionToThree });
+schedule.add(SyncPositionToThree, { after: HandleAntSlope });
 schedule.add(SyncCarriedFoodPosition, { before: SyncPositionToThree});
 schedule.add(DegradePheromones, { before: SyncPositionToThree });
 schedule.add(RenderPheromones, { after: SyncPositionToThree });
@@ -36,8 +38,8 @@ world.spawn(IsColony, Position(new Vector3(0, 2.5, 0)), Static);
 // but it can help us with organization.
 
 export const exampleActions = createActions((world: World) => ({
-  spawnAnt: () => {
-    for (let i = 0; i < 10; i++) {
+  spawnAnt: (count: number = 10) => {
+    for (let i = 0; i < count; i++) {
       const direction = new Vector3(Math.random() * 2 - 1, 0, Math.random() * 2 - 1)
 
       world.spawn(
@@ -65,11 +67,12 @@ export const exampleActions = createActions((world: World) => ({
   },
 
   spawnFood: (
+    count: number = 10,
     x: number = (Math.random() * 100 + 25) * (Math.random() > 0.5 ? 1 : -1),
     y: number = 0.5,
     z: number = (Math.random() * 100 + 25) * (Math.random() > 0.5 ? 1 : -1)
   ) => {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < count; i++) {
       const xOffset = Math.random() * 10 - 5;
       const zOffset = Math.random() * 10 - 5;
       world.spawn(IsFood, Position(new Vector3(x + xOffset, y, z + zOffset)));
