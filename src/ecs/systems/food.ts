@@ -2,6 +2,7 @@ import { createAdded, Not, World } from "koota";
 import { CarriedBy, Carrying, Direction, InColony, IsAnt, IsColony, IsFood, Move, PheromoneSpawner, Position, Sensors, Targeting } from "../traits";
 import { getDistance2D } from "../../utils";
 import { SpatialManager } from "../../spatialTrees/SpatialManager";
+import { ANTHILL, getAnthillHeight } from "../../constants";
 
 const foodManager = new SpatialManager<{ value: number }>();
 
@@ -98,17 +99,20 @@ export const DropOffFood = ({ world }: {world: World }) => {
 
     const distance = getDistance2D({ x: pos.x, z: pos.z }, { x: targetPos.x, z: targetPos.z })
 
-    if (distance < 3) {
+    if (distance < 2) {
       entity.remove(Targeting("*"));
       entity.remove(Carrying("*"));
       const food = entity.targetFor(Carrying);
       food?.remove(CarriedBy("*"));
       food?.add(InColony);
+      const foodPos = food?.get(Position);
+      if (foodPos) {
+        foodPos.y -= ANTHILL.height / 2;
+      }
 
       const sensors = entity.get(Sensors);
       if (sensors) {
         sensors.lookingFor = "food";
-        entity.set(Sensors, sensors);
       }
 
       const pheromoneSpawner = entity.get(PheromoneSpawner);
@@ -116,12 +120,15 @@ export const DropOffFood = ({ world }: {world: World }) => {
         pheromoneSpawner.stepCount = 0;
       }
 
-      // TODO: flip less aggressively
       const dir = entity.get(Direction);
-      entity.set(Direction, { ...dir, desired: dir?.current.clone().multiplyScalar(-1) })
+      if (dir) {
+        dir.desired.copy(dir.current.clone().multiplyScalar(-1));
+      }
 
       const move = entity.get(Move);
-      entity.set(Move, { ...move, currentSpeed: 0.5 });
+      if (move) {
+        move.currentSpeed = 0.5;
+      }
       return;
     }
 
@@ -132,6 +139,9 @@ export const DropOffFood = ({ world }: {world: World }) => {
 }
 
 export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta: number }) => {
+  const colony = world.queryFirst(Position, IsColony);
+  const colonyPos = colony?.get(Position);
+
   world.query(Position, CarriedBy("*"), IsFood).updateEach(([ pos ], entity) => {
     const ant = entity.targetFor(CarriedBy);
     const antPosition = ant?.get(Position);
@@ -142,7 +152,19 @@ export const SyncCarriedFoodPosition = ({ world, delta }: { world: World, delta:
     const offset = antDirection.current.clone().multiplyScalar(1.5);
 
     pos.x = antPosition.x + offset.x;
-    pos.y = antPosition.y + 0.5;
     pos.z = antPosition.z + offset.z;
+
+    let yOffset = 0.5;
+    // if ant is at colony, food must rotate to stay in its mandibles
+    if (colonyPos) {
+      const dx = antPosition.x - colonyPos.x;
+      const dz = antPosition.z - colonyPos.z;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      const aDx = pos.x - colonyPos.x;
+      const aDz = pos.z - colonyPos.z;
+      const aDist = Math.sqrt(aDx * aDx + aDz * aDz);
+      yOffset += getAnthillHeight(aDist) - getAnthillHeight(dist);
+    }
+    pos.y = antPosition.y + yOffset;
   });
 }

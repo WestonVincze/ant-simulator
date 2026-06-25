@@ -112,7 +112,7 @@ const Background = () => {
 
       {texture && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]}>
-          <planeGeometry args={[500, 500]} />
+          <circleGeometry args={[500, 500]} />
           <meshStandardMaterial map={texture} />
         </mesh>
       )}

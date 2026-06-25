@@ -10,9 +10,10 @@ const vertexShader = `
   varying float vIntensity;
 
   void main() {
-    vIntensity = aIntensity;
+    float vis = mix(0.15, 1.0, aIntensity);
+    vIntensity = vis;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = uMaxSize * aIntensity * (uScale / -mvPosition.z);
+    gl_PointSize = uMaxSize * vis * (uScale / -mvPosition.z);
     gl_Position = projectionMatrix * mvPosition;
   }
 `;

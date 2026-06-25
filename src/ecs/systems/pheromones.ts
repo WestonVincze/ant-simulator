@@ -58,24 +58,19 @@ export const DetectPheromones = ({ world }: { world: World }) => {
       right: sensors.rightOffset
     })
 
-    // count pheromones in each sensor
-    const forwardValue = pheromoneManager.query(sensorPos.front, sensors.radius)
-      .filter(item => item.data.type === sensors.lookingFor)
-      .reduce((prev, curr) =>
-        curr.data.stepsFromGoal > 0 ? prev += 1 / curr.data.stepsFromGoal : 2,
-      0);
+    const MIN_DETECT_INTENSITY = 0.05;
 
-    const leftValue =pheromoneManager.query(sensorPos.left, sensors.radius)
-      .filter(item => item.data.type === sensors.lookingFor)
-      .reduce((prev, curr) =>
-        curr.data.stepsFromGoal > 0 ? prev += 1 / curr.data.stepsFromGoal : 2,
-      0);
+    const getValue = (sensorPos: any) =>
+      pheromoneManager.query(sensorPos, sensors.radius)
+        .reduce((sum, item) => {
+          const p = item.entity.get(Pheromone);
+          if (!p || p.type !== sensors.lookingFor || p.intensity < MIN_DETECT_INTENSITY) return sum;
+          return sum + (p.stepsFromGoal > 0 ? 1 / p.stepsFromGoal : 2);
+        }, 0);
 
-    const rightValue = pheromoneManager.query(sensorPos.right, sensors.radius)
-      .filter(item => item.data.type === sensors.lookingFor)
-      .reduce((prev, curr) =>
-        curr.data.stepsFromGoal > 0 ? prev += 1 / curr.data.stepsFromGoal : 2,
-      0);
+    const forwardValue = getValue(sensorPos.front);
+    const leftValue = getValue(sensorPos.left);
+    const rightValue = getValue(sensorPos.right);
 
     // default to forward
     let desired = dir.desired.clone();
