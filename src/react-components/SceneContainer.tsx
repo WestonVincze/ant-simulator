@@ -1,4 +1,4 @@
-import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
+import { Html, OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
 import { useWorld } from "koota/react";
 import { EquirectangularReflectionMapping, SRGBColorSpace, Texture, TextureLoader } from "three";
@@ -10,15 +10,62 @@ import { Colony } from "./Colony";
 import { Pheromones } from "./Pheromones";
 import { ClickSpawner } from "./ClickSpawner";
 import { SensorGizmos } from "./SensorGizmos";
+import { GLTFLoader } from "three-stdlib";
+
+const ASSETS = [
+  "ant/source/ant.glb",
+  "ant/textures/ant_carp_bump.png",
+  "bambanani_sunset.webp",
+  "bg.png"
+];
 
 export function SceneContainer() {
   const world = useWorld();
   const debugMode = false;
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let loaded = 0;
+    const gltfLoader = new GLTFLoader();
+    const textureLoader = new TextureLoader();
+
+    const onAssetLoaded = () => {
+      loaded += 1;
+      if (loaded === ASSETS.length) setLoading(false);
+    };
+
+    gltfLoader.load(ASSETS[0], () => onAssetLoaded(), undefined, onAssetLoaded);
+
+    for (let i = 1; i < ASSETS.length; i++) {
+      textureLoader.load(ASSETS[i], () => onAssetLoaded(), undefined, onAssetLoaded);
+    }
+  }, []);
 
   useFrame((_state, delta) => {
     // this is how we connect our ecs systems to r3f
     schedule.run({ world, delta });
   });
+
+  if (loading) {
+    return (
+      <mesh>
+        <planeGeometry args={[10, 5]} />
+        <meshBasicMaterial color="#222" />
+        <Html center>
+          <div style={{
+            color: "white",
+            fontSize: "2rem",
+            textAlign: "center",
+            background: "rgba(0,0,0,0.7)",
+            padding: "2rem",
+            borderRadius: "1rem"
+          }}>
+            Loading assets...
+          </div>
+        </Html>
+      </mesh>
+    );
+  }
 
   return (
     <>
@@ -61,7 +108,6 @@ const Background = () => {
 
   return (
     <>
-      {/*<color attach="background" args={['#606033']} />*/}
       <directionalLight castShadow color={"#ffb65e"} intensity={3} position={[2, 6, 2.5]} />
 
       {texture && (
@@ -70,12 +116,6 @@ const Background = () => {
           <meshStandardMaterial map={texture} />
         </mesh>
       )}
-
-      {/*
-      <Environment frames={1} environmentIntensity={0.4}>
-        <Sky sunPosition={[0, 1, 11]}/>
-      </Environment>
-      */}
     </>
   )
 }
