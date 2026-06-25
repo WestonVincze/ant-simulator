@@ -1,24 +1,26 @@
-import { useEffect, useRef } from "react";
-import { Mesh } from "three";
-import { IsColony, MeshRef, Position } from "../ecs/traits";
 import { useQueryFirst } from "koota/react";
+import { IsColony, Position } from "../ecs/traits";
+import { ANTHILL, ENTRANCE_Y } from "../constants";
 
 export function Colony () {
   const colony = useQueryFirst(IsColony, Position);
-  const meshRef = useRef<Mesh>(null!);
 
-  useEffect(() => {
-    colony?.add(MeshRef({ ref: meshRef.current }))
+  if (!colony) return null;
 
-    return () => {
-      colony?.remove(MeshRef);
-    };
-  }, [colony]);
+  const pos = colony.get(Position)!;
 
   return (
-    <mesh ref={meshRef} castShadow receiveShadow>
-      <coneGeometry args={[5, 5, 20]} />
-      <meshStandardMaterial color={"tan"} />
-    </mesh>
-  )
+    <group position={[pos.x, 0, pos.z]}>
+      {/* Main mound */}
+      <mesh castShadow receiveShadow position={[0, ANTHILL.centerY, 0]}>
+        <cylinderGeometry args={[ANTHILL.topRadius, ANTHILL.baseRadius, ANTHILL.height, 20]} />
+        <meshStandardMaterial color="#C8A481" roughness={0.95} metalness={0.3} />
+      </mesh>
+      {/* Entrance hole */}
+      <mesh position={[0, ENTRANCE_Y + 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[ANTHILL.entranceRadius, 24]} />
+        <meshStandardMaterial color="#1a1a1a" roughness={1} metalness={0} />
+      </mesh>
+    </group>
+  );
 }
