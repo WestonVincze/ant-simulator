@@ -39,4 +39,9 @@ export class SpatialManager<T> {
       maxY: position.z + range,
     });
   }
+
+  clear () {
+    this.map = new Map();
+    this.tree = new RBush();
+  }
 }

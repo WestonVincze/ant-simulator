@@ -150,3 +150,7 @@ export const AutoSpawnAnts = ({ world, delta }: { world: World, delta: number })
     );
   }
 }
+
+export const resetSpawnTimer = () => {
+  spawnTimer = 0;
+}

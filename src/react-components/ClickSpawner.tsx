@@ -2,13 +2,11 @@ import { useEffect, useState } from "react";
 import { Plane, Raycaster, Vector2, Vector3 } from "three";
 import { useThree } from "@react-three/fiber";
 import { useActions } from "koota/react";
-import { exampleActions } from "../ecs";
+import { simulationActions } from "../ecs";
 
 export const ClickSpawner = () => {
-  const [spawnObject, setSpawnObject] = useState("food");
-
   const { camera, gl, size } = useThree();
-  const { spawnPheromone, spawnFood, spawnAnt } = useActions(exampleActions);
+  const { spawnFood } = useActions(simulationActions);
 
   const [isSpawning, setIsSpawning] = useState(false);
 
@@ -29,22 +27,15 @@ export const ClickSpawner = () => {
     const intersection = new Vector3();
 
     if (raycaster.ray.intersectPlane(groundPlane, intersection)) {
-      if (spawnObject === "food") {
-        spawnFood(intersection.x, 0.5, intersection.z)
-      } else if (spawnObject === "pheromone") {
-        spawnPheromone(intersection.x, 0, intersection.z);
-      }
+      spawnFood(intersection.x, 0.5, intersection.z)
     }
   };
 
   const handleKeyDown = (event: KeyboardEvent) => {
     if (event.key === "f") {
       setIsSpawning((prev) => !prev);
-      // setSpawnObject("food");
-    } else if (event.key === "p") {
-      // setSpawnObject("pheromone")
-    }
-  }
+    } 
+   }
 
   useEffect(() => {
     const canvas = gl.domElement;

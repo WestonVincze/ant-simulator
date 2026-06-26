@@ -21,17 +21,17 @@ export function MenuScreen({ onStart }: Props) {
         <img src="/ant.svg" alt="Ant" className="w-[100px] h-auto" />
 
         <div className="flex flex-col gap-4">
-          <button className="btn btn-green" onClick={onStart}>
+          <button className="btn btn-primary" onClick={onStart}>
             Start Simulation
           </button>
           <button
-            className="btn btn-purple"
+            className="btn btn-primary"
             onClick={() => setShowHowToPlay(true)}
           >
             How it Works
           </button>
           <button
-            className="btn btn-purple"
+            className="btn btn-primary"
             onClick={() => setShowSettings(true)}
           >
             Options
