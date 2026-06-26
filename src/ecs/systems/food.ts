@@ -8,6 +8,10 @@ const foodManager = new SpatialManager<{ value: number }>();
 
 const Added = createAdded();
 
+export const clearFoodManager = () => {
+  foodManager.clear();
+};
+
 export const SyncFoodManager = ({ world }: { world: World }) => {
   world.query(Added(IsFood, Position)).forEach(entity => {
     const pos = entity.get(Position);

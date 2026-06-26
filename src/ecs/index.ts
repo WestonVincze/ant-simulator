@@ -23,7 +23,7 @@ schedule.add(DropOffFood, { after: FaceAntsTowardTarget });
 schedule.add(HandleMove);
 schedule.add(AutoSpawnAnts, { after: HandleMove });
 schedule.add(LeavePheromoneTrail, { after: HandleMove })
-schedule.add(HandleRotation), { before: SyncPositionToThree };
+schedule.add(HandleRotation, { before: SyncPositionToThree });
 schedule.add(HandleAntSlope, { after: HandleRotation, before: SyncPositionToThree });
 schedule.add(SyncPositionToThree, { after: HandleAntSlope });
 schedule.add(SyncCarriedFoodPosition, { before: SyncPositionToThree});
@@ -37,7 +37,7 @@ world.spawn(IsColony, Position(new Vector3(0, 2.5, 0)), Static);
 // Creating action stores is optional – we can execute the code directly –
 // but it can help us with organization.
 
-export const exampleActions = createActions((world: World) => ({
+export const simulationActions = createActions((world: World) => ({
   spawnAnt: (count: number = 10) => {
     for (let i = 0; i < count; i++) {
       const direction = new Vector3(Math.random() * 2 - 1, 0, Math.random() * 2 - 1)

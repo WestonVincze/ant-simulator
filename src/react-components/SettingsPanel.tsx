@@ -31,7 +31,7 @@ export function SettingsPanel({ onClose }: Props) {
               max={500}
               value={startingAnts}
               onChange={e => setStartingAnts(Number(e.target.value))}
-              className="flex-1 accent-green-400"
+              className="flex-1 accent-amber-800"
             />
             <span className="min-w-[3rem] text-right tabular-nums">{startingAnts}</span>
           </div>
@@ -46,7 +46,7 @@ export function SettingsPanel({ onClose }: Props) {
               max={500}
               value={foodCount}
               onChange={e => setFoodCount(Number(e.target.value))}
-              className="flex-1 accent-green-400"
+              className="flex-1 accent-amber-800"
             />
             <span className="min-w-[3rem] text-right tabular-nums">{foodCount}</span>
           </div>
@@ -61,13 +61,13 @@ export function SettingsPanel({ onClose }: Props) {
               max={30}
               value={antSpawnRate}
               onChange={e => setAntSpawnRate(Number(e.target.value))}
-              className="flex-1 accent-green-400"
+              className="flex-1 accent-amber-800"
             />
             <span className="min-w-[3rem] text-right tabular-nums">{antSpawnRate}s</span>
           </div>
         </label>
 
-        <button className="btn btn-green self-center min-w-[120px]" onClick={handleSave}>
+        <button className="btn btn-secondary self-center min-w-[120px]" onClick={handleSave}>
           Save
         </button>
       </div>

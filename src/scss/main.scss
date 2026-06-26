@@ -1,7 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-@import url("https://fonts.googleapis.com/css2?family=Roboto&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Ribeye&display=swap");
 
 // =========================================================================================
 // Variables
@@ -23,7 +23,7 @@ canvas {
 // =========================================================================================
 // Container classes
 body {
-  font-family: "Roboto", Verdana, Geneva, Tahoma, sans-serif;
+  font-family: "Ribeye", Verdana, sans-serif;
 }
 
 .AppContainer {
@@ -76,35 +76,25 @@ body {
   @apply py-2 px-4 rounded flex
   items-center justify-center
   min-w-max interaction-button text-xl;
-  transition: all 0.3s ease-in;
+  transition: all 0.2s ease-in;
 }
 
 .btn:hover {
   @apply cursor-pointer;
 }
 
-.btn-green {
-  @apply bg-green-700 text-white;
+.btn-primary {
+  @apply bg-amber-800 border-amber-500 border text-white;
+}
+.btn-primary:hover {
+  @apply bg-amber-950 border-amber-950;
 }
 
-.btn-green:hover {
-  @apply bg-green-900;
+.btn-secondary {
+  @apply bg-transparent border-white border text-white;
 }
-
-.btn-red {
-  @apply bg-red-500 text-white;
-}
-
-.btn-red:hover {
-  @apply bg-red-700;
-}
-
-.btn-purple {
-  @apply bg-purple-700 text-white;
-}
-
-.btn-purple:hover {
-  @apply bg-purple-900;
+.btn-secondary:hover {
+  @apply bg-[#0008]
 }
 
 // =========================================================================================
